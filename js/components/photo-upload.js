@@ -16,7 +16,7 @@ import { processAndSavePhoto, deletePhoto, createPhotoUrl, revokeAllPhotoUrls, e
  * @param {string} options.mode - 'form' (im Formular) oder 'detail' (nachträglich)
  * @returns {Object} { el, addPhotosFromFiles, getPhotoIds, setObservationId, destroy }
  */
-export function createPhotoUpload({ observationId = null, existingPhotos = [], onPhotosChanged = null, onGpsFound = null, mode = 'form' } = {}) {
+export function createPhotoUpload({ observationId = null, existingPhotos = [], onPhotosChanged = null, onGpsFound = null, onNoGps = null, mode = 'form' } = {}) {
   let _observationId = observationId;
   let _photoEntries = []; // [{id, thumbnailUrl, status: 'saved'|'pending'|'processing'}]
   let _pendingFiles = [];  // Files die noch keine observationId haben
@@ -115,6 +115,8 @@ export function createPhotoUpload({ observationId = null, existingPhotos = [], o
           // GPS aus EXIF melden
           if (result.exif?.lat && result.exif?.lng) {
             onGpsFound?.({ lat: result.exif.lat, lng: result.exif.lng, date: result.exif.date });
+          } else {
+            onNoGps?.();
           }
 
           // Temp URL freigeben, Thumbnail-URL setzen
@@ -139,6 +141,8 @@ export function createPhotoUpload({ observationId = null, existingPhotos = [], o
             const exif = await extractBasicExif(file);
             if (exif?.lat && exif?.lng) {
               onGpsFound?.({ lat: exif.lat, lng: exif.lng, date: exif.date });
+            } else {
+              onNoGps?.();
             }
           } catch (e) { /* ignore */ }
         }

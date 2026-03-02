@@ -523,3 +523,12 @@
 .exif-gps-dismiss:hover {
   color: var(--text-primary);
 }
+
+.exif-gps-bar--info {
+  border-color: var(--border-default);
+  background: var(--bg-surface);
+}
+
+.exif-gps-bar--info svg {
+  color: var(--text-tertiary);
+}

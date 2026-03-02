@@ -546,6 +546,9 @@ function mountComponents() {
       onGpsFound: ({ lat, lng }) => {
         showExifGpsHint(lat, lng);
       },
+      onNoGps: () => {
+        showNoGpsHint();
+      },
     });
     photoMount.appendChild(_photoUpload.el);
     // Show initial count
@@ -668,6 +671,30 @@ function showExifGpsHint(lat, lng) {
 
   hintEl.querySelector('.exif-gps-dismiss')?.addEventListener('click', () => {
     hintEl.innerHTML = '';
+  });
+}
+
+async function showNoGpsHint() {
+  // Einmalig: nur anzeigen wenn noch nicht weggeklickt
+  const dismissed = await db.settings.get('gpsHintDismissed');
+  if (dismissed?.value) return;
+
+  const hintEl = _container?.querySelector('#exif-gps-hint');
+  if (!hintEl || hintEl.innerHTML.trim()) return; // Nicht überschreiben wenn GPS-Hint aktiv
+
+  hintEl.innerHTML = `
+    <div class="exif-gps-bar exif-gps-bar--info">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+      </svg>
+      <span>Foto ohne GPS-Daten. <strong>Tipp:</strong> Über den Dateimanager statt der Galerie importieren – dann bleiben die Standortdaten erhalten.</span>
+      <button type="button" class="exif-gps-dismiss" aria-label="Schließen">×</button>
+    </div>
+  `;
+
+  hintEl.querySelector('.exif-gps-dismiss')?.addEventListener('click', async () => {
+    hintEl.innerHTML = '';
+    await db.settings.put({ key: 'gpsHintDismissed', value: true });
   });
 }
 
