@@ -2,14 +2,16 @@
    AraLog – Artenkatalog (species-catalog.js)
    Kuratierte Liste häufiger Araneae für die Region Berlin/Brandenburg
    Sortiert nach Familie, dann alphabetisch nach wissenschaftlichem Namen
+   Stand: März 2026 – kuratiert mit Fach-Input
    ========================================================================== */
 
 export const speciesCatalog = [
 
   // ── Agelenidae (Trichterspinnen) ──
   { id: 'agelena_labyrinthica', scientificName: 'Agelena labyrinthica', germanName: 'Labyrinthspinne', family: 'Agelenidae', distribution: 'häufig' },
-  { id: 'eratigena_atrica', scientificName: 'Eratigena atrica', germanName: 'Große Winkelspinne', family: 'Agelenidae', distribution: 'häufig' },
-  { id: 'tegenaria_domestica', scientificName: 'Tegenaria domestica', germanName: 'Hausspinne', family: 'Agelenidae', distribution: 'häufig' },
+  { id: 'eratigena_atrica_komplex', scientificName: 'Eratigena atrica/duellica', germanName: 'Große Winkelspinnen (Komplex)', family: 'Agelenidae', distribution: 'häufig' },
+  { id: 'eratigena_ferruginea', scientificName: 'Eratigena ferruginea', germanName: 'Rostrote Winkelspinne', family: 'Agelenidae', distribution: 'häufig' },
+  { id: 'tegenaria_domestica', scientificName: 'Tegenaria domestica', germanName: 'Hauswinkelspinne', family: 'Agelenidae', distribution: 'häufig' },
 
   // ── Amaurobiidae (Finsterspinnen) ──
   { id: 'amaurobius_fenestralis', scientificName: 'Amaurobius fenestralis', germanName: 'Fensterspinne', family: 'Amaurobiidae', distribution: 'häufig' },
@@ -31,6 +33,13 @@ export const speciesCatalog = [
   { id: 'nuctenea_umbratica', scientificName: 'Nuctenea umbratica', germanName: 'Spaltenkreuzspinne', family: 'Araneidae', distribution: 'häufig' },
   { id: 'zygiella_x_notata', scientificName: 'Zygiella x-notata', germanName: 'Sektorspinne', family: 'Araneidae', distribution: 'häufig' },
 
+  // ── Argyronetidae (Wasserspinnen) ──
+  { id: 'argyroneta_aquatica', scientificName: 'Argyroneta aquatica', germanName: 'Wasserspinne', family: 'Argyronetidae', distribution: 'selten' },
+
+  // ── Atypidae (Tapezierspinnen) ──
+  { id: 'atypus_affinis', scientificName: 'Atypus affinis', germanName: 'Gewöhnliche Tapezierspinne', family: 'Atypidae', distribution: 'selten' },
+  { id: 'atypus_piceus', scientificName: 'Atypus piceus', germanName: 'Pechschwarze Tapezierspinne', family: 'Atypidae', distribution: 'selten' },
+
   // ── Cheiracanthiidae (Dornfingerspinnen) ──
   { id: 'cheiracanthium_mildei', scientificName: 'Cheiracanthium mildei', germanName: 'Milder Dornfinger', family: 'Cheiracanthiidae', distribution: 'mäßig verbreitet' },
   { id: 'cheiracanthium_punctorium', scientificName: 'Cheiracanthium punctorium', germanName: 'Ammen-Dornfinger', family: 'Cheiracanthiidae', distribution: 'mäßig verbreitet' },
@@ -45,12 +54,16 @@ export const speciesCatalog = [
   // ── Dysderidae (Sechsaugenspinnen) ──
   { id: 'dysdera_crocata', scientificName: 'Dysdera crocata', germanName: 'Großer Asseljäger', family: 'Dysderidae', distribution: 'häufig' },
 
+  // ── Eresidae (Röhrenspinnen) ──
+  { id: 'eresus_kollari', scientificName: 'Eresus kollari/sandaliatus', germanName: 'Rote Röhrenspinne', family: 'Eresidae', distribution: 'selten' },
+
   // ── Gnaphosidae (Plattbauchspinnen) ──
   { id: 'drassodes_lapidosus', scientificName: 'Drassodes lapidosus', germanName: 'Steinplattenspinne', family: 'Gnaphosidae', distribution: 'häufig' },
   { id: 'zelotes_subterraneus', scientificName: 'Zelotes subterraneus', germanName: 'Unterirdische Schwarzspinne', family: 'Gnaphosidae', distribution: 'mäßig verbreitet' },
 
   // ── Linyphiidae (Baldachin-/Zwergspinnen) ──
   { id: 'linyphia_triangularis', scientificName: 'Linyphia triangularis', germanName: 'Herbstspinne', family: 'Linyphiidae', distribution: 'häufig' },
+  { id: 'linyphiidae_div', scientificName: 'Linyphiidae div.', germanName: 'Baldachinspinnen (diverse)', family: 'Linyphiidae', distribution: 'häufig' },
   { id: 'neriene_clathrata', scientificName: 'Neriene clathrata', germanName: 'Gestreifter Baldachinweber', family: 'Linyphiidae', distribution: 'häufig' },
   { id: 'neriene_peltata', scientificName: 'Neriene peltata', germanName: 'Schildförmiger Baldachinweber', family: 'Linyphiidae', distribution: 'häufig' },
   { id: 'tenuiphantes_tenuis', scientificName: 'Tenuiphantes tenuis', germanName: 'Zarte Baldachinspinne', family: 'Linyphiidae', distribution: 'häufig' },
@@ -71,9 +84,6 @@ export const speciesCatalog = [
   // ── Mimetidae (Spinnenfresser) ──
   { id: 'ero_furcata', scientificName: 'Ero furcata', germanName: 'Spinnenfresser', family: 'Mimetidae', distribution: 'mäßig verbreitet' },
 
-  // ── Miturgidae ──
-  { id: 'zora_spinimana', scientificName: 'Zora spinimana', germanName: 'Dornfinger-Wanderspinne', family: 'Miturgidae', distribution: 'häufig' },
-
   // ── Oxyopidae (Luchsspinnen) ──
   { id: 'oxyopes_ramosus', scientificName: 'Oxyopes ramosus', germanName: 'Luchsspinne', family: 'Oxyopidae', distribution: 'mäßig verbreitet' },
 
@@ -87,6 +97,7 @@ export const speciesCatalog = [
 
   // ── Pisauridae (Raubspinnen/Jagdspinnen) ──
   { id: 'dolomedes_fimbriatus', scientificName: 'Dolomedes fimbriatus', germanName: 'Gerandete Jagdspinne', family: 'Pisauridae', distribution: 'selten' },
+  { id: 'dolomedes_plantarius', scientificName: 'Dolomedes plantarius', germanName: 'Große Jagdspinne', family: 'Pisauridae', distribution: 'selten' },
   { id: 'pisaura_mirabilis', scientificName: 'Pisaura mirabilis', germanName: 'Listspinne', family: 'Pisauridae', distribution: 'häufig' },
 
   // ── Salticidae (Springspinnen) ──
@@ -100,6 +111,9 @@ export const speciesCatalog = [
   { id: 'salticus_scenicus', scientificName: 'Salticus scenicus', germanName: 'Zebraspringspinne', family: 'Salticidae', distribution: 'häufig' },
   { id: 'sitticus_pubescens', scientificName: 'Sitticus pubescens', germanName: 'Behaarte Springspinne', family: 'Salticidae', distribution: 'häufig' },
 
+  // ── Scytodidae (Speispinnen) ──
+  { id: 'scytodes_thoracica', scientificName: 'Scytodes thoracica', germanName: 'Speispinne', family: 'Scytodidae', distribution: 'mäßig verbreitet' },
+
   // ── Segestriidae (Fischernetzspinnen) ──
   { id: 'segestria_senoculata', scientificName: 'Segestria senoculata', germanName: 'Sechsaugen-Fischernetzspinne', family: 'Segestriidae', distribution: 'häufig' },
 
@@ -110,10 +124,12 @@ export const speciesCatalog = [
 
   // ── Theridiidae (Kugelspinnen/Haubennetzspinnen) ──
   { id: 'enoplognatha_ovata', scientificName: 'Enoplognatha ovata', germanName: 'Rotstreifige Kugelspinne', family: 'Theridiidae', distribution: 'häufig' },
-  { id: 'parasteatoda_tepidariorum', scientificName: 'Parasteatoda tepidariorum', germanName: 'Gewöhnliche Hauswinkelkugelspinne', family: 'Theridiidae', distribution: 'häufig' },
+  { id: 'parasteatoda_tepidariorum', scientificName: 'Parasteatoda tepidariorum', germanName: 'Amerikanische Hausspinne', family: 'Theridiidae', distribution: 'häufig' },
+  { id: 'phylloneta_impressa', scientificName: 'Phylloneta impressa', germanName: 'Kugelspinne', family: 'Theridiidae', distribution: 'häufig' },
   { id: 'steatoda_bipunctata', scientificName: 'Steatoda bipunctata', germanName: 'Zweipunkt-Fettspinne', family: 'Theridiidae', distribution: 'häufig' },
   { id: 'steatoda_grossa', scientificName: 'Steatoda grossa', germanName: 'Große Fettspinne', family: 'Theridiidae', distribution: 'mäßig verbreitet' },
   { id: 'steatoda_nobilis', scientificName: 'Steatoda nobilis', germanName: 'Falsche Witwe', family: 'Theridiidae', distribution: 'selten' },
+  { id: 'steatoda_triangulosa', scientificName: 'Steatoda triangulosa', germanName: 'Dreieckige Fettspinne', family: 'Theridiidae', distribution: 'häufig' },
   { id: 'theridion_varians', scientificName: 'Theridion varians', germanName: 'Bunte Kugelspinne', family: 'Theridiidae', distribution: 'häufig' },
 
   // ── Thomisidae (Krabbenspinnen) ──
@@ -123,6 +139,7 @@ export const speciesCatalog = [
   { id: 'thomisus_onustus', scientificName: 'Thomisus onustus', germanName: 'Rosenkrabbenspinne', family: 'Thomisidae', distribution: 'mäßig verbreitet' },
   { id: 'xysticus_cristatus', scientificName: 'Xysticus cristatus', germanName: 'Busch-Krabbenspinne', family: 'Thomisidae', distribution: 'häufig' },
   { id: 'xysticus_kochi', scientificName: 'Xysticus kochi', germanName: 'Kochs Krabbenspinne', family: 'Thomisidae', distribution: 'häufig' },
+  { id: 'xysticus_spp', scientificName: 'Xysticus spp.', germanName: 'Braune Krabbenspinnen (Xysticus)', family: 'Thomisidae', distribution: 'häufig' },
 
   // ── Titanoecidae ──
   { id: 'titanoeca_quadriguttata', scientificName: 'Titanoeca quadriguttata', germanName: 'Vierpunkt-Finsterspinne', family: 'Titanoecidae', distribution: 'mäßig verbreitet' },
@@ -130,7 +147,10 @@ export const speciesCatalog = [
   // ── Uloboridae (Kräuselradnetzspinnen) ──
   { id: 'uloborus_walckenaerius', scientificName: 'Uloborus walckenaerius', germanName: 'Gewöhnliche Kräuselradnetzspinne', family: 'Uloboridae', distribution: 'mäßig verbreitet' },
 
-  // ── Zoropsidae ──
+  // ── Zoridae (Wanderspinnen) ──
+  { id: 'zora_spinimana', scientificName: 'Zora spinimana', germanName: 'Stachel-Wanderspinne', family: 'Zoridae', distribution: 'häufig' },
+
+  // ── Zoropsidae (Kräuseljagdspinnen) ──
   { id: 'zoropsis_spinimana', scientificName: 'Zoropsis spinimana', germanName: 'Nosferatu-Spinne', family: 'Zoropsidae', distribution: 'mäßig verbreitet' },
 ];
 
