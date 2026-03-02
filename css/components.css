@@ -1,0 +1,479 @@
+/* ==========================================================================
+   AraLog – UI Components
+   Buttons, Inputs, Tags, Cards, Collapsible Sections
+   ========================================================================== */
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  min-height: var(--tap-target-min);
+  padding: var(--space-md) var(--space-xl);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  transition: background var(--transition-fast), color var(--transition-fast),
+              border-color var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--text-inverse);
+}
+
+.btn-primary:hover { background: var(--accent-light); }
+.btn-primary:active { background: var(--accent-dim); }
+
+.btn-secondary {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+}
+
+.btn-secondary:hover { background: var(--bg-hover); }
+
+.btn-danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid transparent;
+}
+
+.btn-danger:hover { background: var(--danger); color: var(--text-primary); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.btn-ghost:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-sm {
+  min-height: 36px;
+  padding: var(--space-sm) var(--space-lg);
+  font-size: var(--text-sm);
+}
+
+.btn-lg {
+  min-height: 52px;
+  padding: var(--space-lg) var(--space-2xl);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+}
+
+/* ── Form Elements ── */
+.form-group {
+  margin-bottom: var(--space-lg);
+}
+
+.form-label {
+  display: block;
+  margin-bottom: var(--space-xs);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  min-height: var(--tap-target-min);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--text-base);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-bg);
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+  color: var(--text-tertiary);
+}
+
+.form-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a09a92' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 40px;
+}
+
+.form-hint {
+  margin-top: var(--space-xs);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+/* Number input with unit */
+.input-with-unit {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.input-with-unit .form-input {
+  flex: 1;
+}
+
+.input-with-unit .unit {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* ── Toggle Group (for confidence etc.) ── */
+.toggle-group {
+  display: flex;
+  gap: 2px;
+  background: var(--bg-input);
+  border-radius: var(--radius-md);
+  padding: 2px;
+  border: 1px solid var(--border-default);
+}
+
+.toggle-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: calc(var(--radius-md) - 2px);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.toggle-option:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.toggle-option.selected {
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Confidence-specific colors */
+.toggle-option.selected[data-value="sicher"] {
+  color: var(--confidence-sicher);
+  background: var(--success-bg);
+}
+
+.toggle-option.selected[data-value="wahrscheinlich"] {
+  color: var(--confidence-wahrscheinlich);
+  background: var(--warning-bg);
+}
+
+.toggle-option.selected[data-value="unsicher"] {
+  color: var(--confidence-unsicher);
+  background: var(--danger-bg);
+}
+
+/* ── Tags ── */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: 32px;
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+}
+
+.tag:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-default);
+}
+
+.tag.selected {
+  background: var(--accent-bg);
+  color: var(--accent-light);
+  border-color: var(--accent-dim);
+}
+
+.tag .tag-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text-tertiary);
+  margin-left: 2px;
+}
+
+.tag .tag-remove:hover {
+  color: var(--danger);
+  background: var(--danger-bg);
+}
+
+/* Tag container / selector */
+.tag-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+/* Tag group with label */
+.tag-group {
+  margin-bottom: var(--space-md);
+}
+
+.tag-group-label {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-sm);
+}
+
+/* ── Cards ── */
+.card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  transition: border-color var(--transition-fast);
+}
+
+.card:hover {
+  border-color: var(--border-default);
+}
+
+.card-clickable {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.card-clickable:active {
+  background: var(--bg-elevated);
+}
+
+/* ── Collapsible Sections ── */
+.collapsible {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.collapsible-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  min-height: var(--tap-target-min);
+  padding: var(--space-md) 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.collapsible-header h3 {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+}
+
+.collapsible-icon {
+  margin-left: auto;
+  width: 20px;
+  height: 20px;
+  color: var(--text-tertiary);
+  transition: transform var(--transition-normal);
+  flex-shrink: 0;
+}
+
+.collapsible.open .collapsible-icon {
+  transform: rotate(180deg);
+}
+
+.collapsible-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height var(--transition-slow), padding var(--transition-slow);
+  padding-bottom: 0;
+}
+
+.collapsible.open .collapsible-body {
+  max-height: 2000px; /* large enough for any content */
+  padding-bottom: var(--space-lg);
+}
+
+/* ── Badges ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+}
+
+.badge-sicher { background: var(--success-bg); color: var(--success); }
+.badge-wahrscheinlich { background: var(--warning-bg); color: var(--warning); }
+.badge-unsicher { background: var(--danger-bg); color: var(--danger); }
+
+/* ── Search ── */
+.search-bar {
+  position: relative;
+}
+
+.search-bar .form-input {
+  padding-left: 40px;
+}
+
+.search-bar svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+/* ── Species Picker (Autocomplete) ── */
+.species-picker-wrapper {
+  position: relative;
+}
+
+.species-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: var(--z-dropdown);
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-top: none;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  display: none;
+}
+
+.species-dropdown.open {
+  display: block;
+}
+
+.species-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-md) var(--space-lg);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.species-option:hover,
+.species-option.highlighted {
+  background: var(--bg-hover);
+}
+
+.species-option .german-name {
+  font-weight: var(--weight-medium);
+}
+
+.species-option .sci-name {
+  font-size: var(--text-sm);
+}
+
+.species-option .family {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+/* ── Confirm Dialog ── */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  background: rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+  pointer-events: none;
+}
+
+.dialog-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dialog {
+  width: 100%;
+  max-width: 360px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  box-shadow: var(--shadow-elevated);
+  transform: scale(0.95);
+  transition: transform var(--transition-normal);
+}
+
+.dialog-overlay.open .dialog {
+  transform: scale(1);
+}
+
+.dialog h3 {
+  margin-bottom: var(--space-md);
+}
+
+.dialog p {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-xl);
+}
+
+.dialog-actions {
+  display: flex;
+  gap: var(--space-md);
+  justify-content: flex-end;
+}

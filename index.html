@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1a1a1a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="AraLog – Arachniden-Feldtagebuch. Offline-fähige PWA zur Erfassung von Spinnenbeobachtungen.">
+
+  <title>AraLog</title>
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🕷%3C/text%3E%3C/svg%3E">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="lib/leaflet/leaflet.css">
+  <link rel="stylesheet" href="lib/leaflet.markercluster/MarkerCluster.css">
+  <link rel="stylesheet" href="lib/leaflet.markercluster/MarkerCluster.Default.css">
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/views.css">
+  <link rel="stylesheet" href="css/map.css">
+
+  <!-- Leaflet (loaded globally, not as ES module) -->
+  <script src="lib/leaflet/leaflet.js"></script>
+  <script src="lib/leaflet.markercluster/leaflet.markercluster.js"></script>
+</head>
+<body class="no-overscroll">
+
+  <!-- Update Banner -->
+  <div id="update-banner">Update verfügbar – tippen zum Neuladen</div>
+
+  <!-- App Shell -->
+  <div id="app">
+
+    <!-- Header -->
+    <header id="app-header">
+      <span class="app-title">AraLog</span>
+      <div class="header-actions">
+        <!-- Platz für Kontext-Aktionen pro View -->
+      </div>
+    </header>
+
+    <!-- Content (Router rendert hier rein) -->
+    <main id="app-content">
+      <!-- Loading state -->
+      <div class="view-container">
+        <div class="empty-state">
+          <p class="text-muted">Lade...</p>
+        </div>
+      </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav id="app-nav">
+      <a href="#" class="nav-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <line x1="8" y1="6" x2="21" y2="6"/>
+          <line x1="8" y1="12" x2="21" y2="12"/>
+          <line x1="8" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="6" x2="3.01" y2="6"/>
+          <line x1="3" y1="12" x2="3.01" y2="12"/>
+          <line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+        <span>Liste</span>
+      </a>
+      <a href="#map" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
+          <line x1="8" y1="2" x2="8" y2="18"/>
+          <line x1="16" y1="6" x2="16" y2="22"/>
+        </svg>
+        <span>Karte</span>
+      </a>
+      <a href="#new" class="nav-item nav-new">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        <span>Neu</span>
+      </a>
+      <a href="#settings" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+        <span>Mehr</span>
+      </a>
+    </nav>
+
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- App Entry Point -->
+  <script type="module" src="js/app.js"></script>
+
+</body>
+</html>

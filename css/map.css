@@ -1,0 +1,182 @@
+/* ==========================================================================
+   AraLog – Map Styles
+   Leaflet overrides, map-specific components
+   ========================================================================== */
+
+/* ── Full-screen map view ── */
+.map-view-container {
+  position: absolute;
+  top: var(--header-height);
+  left: 0;
+  right: 0;
+  bottom: var(--nav-height);
+  z-index: var(--z-base);
+}
+
+.map-view-container .leaflet-container {
+  width: 100%;
+  height: 100%;
+  background: var(--bg-primary);
+}
+
+/* ── Mini map in form/detail ── */
+.mini-map-container {
+  width: 100%;
+  height: 180px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border-default);
+}
+
+.mini-map-container .leaflet-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Leaflet Dark Theme Overrides ── */
+.leaflet-control-zoom a {
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-default) !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background: var(--bg-hover) !important;
+}
+
+.leaflet-control-attribution {
+  background: rgba(26, 26, 26, 0.75) !important;
+  color: var(--text-tertiary) !important;
+  font-size: 10px !important;
+}
+
+.leaflet-control-attribution a {
+  color: var(--text-secondary) !important;
+}
+
+/* ── Popups ── */
+.leaflet-popup-content-wrapper {
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.leaflet-popup-tip {
+  background: var(--bg-elevated) !important;
+}
+
+.leaflet-popup-close-button {
+  color: var(--text-secondary) !important;
+}
+
+.leaflet-popup-close-button:hover {
+  color: var(--text-primary) !important;
+}
+
+.popup-content {
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.popup-species {
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-base);
+  margin-bottom: var(--space-xs);
+}
+
+.popup-meta {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-sm);
+}
+
+.popup-link {
+  color: var(--accent-light);
+  font-weight: var(--weight-medium);
+}
+
+.popup-thumb {
+  width: 100%;
+  max-height: 120px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-sm);
+}
+
+/* ── Cluster Markers ── */
+.marker-cluster {
+  background: rgba(196, 154, 108, 0.3) !important;
+}
+
+.marker-cluster div {
+  background: var(--accent) !important;
+  color: var(--text-inverse) !important;
+  font-weight: var(--weight-semibold) !important;
+  font-size: var(--text-sm) !important;
+}
+
+.marker-cluster-small {
+  background: rgba(196, 154, 108, 0.25) !important;
+}
+
+.marker-cluster-medium {
+  background: rgba(196, 154, 108, 0.35) !important;
+}
+
+.marker-cluster-large {
+  background: rgba(196, 154, 108, 0.45) !important;
+}
+
+/* ── Map Layer Switcher ── */
+.map-layer-control {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  z-index: 1000;
+  display: flex;
+  gap: 2px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  padding: 2px;
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-md);
+}
+
+.map-layer-btn {
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+  border-radius: calc(var(--radius-md) - 2px);
+  transition: all var(--transition-fast);
+  min-height: 32px;
+}
+
+.map-layer-btn.active {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.map-layer-btn:hover:not(.active) {
+  color: var(--text-primary);
+}
+
+/* ── GPS Accuracy Indicator ── */
+.gps-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.gps-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.gps-dot.good { background: var(--success); }
+.gps-dot.fair { background: var(--warning); }
+.gps-dot.poor { background: var(--danger); }
+.gps-dot.none { background: var(--text-tertiary); }

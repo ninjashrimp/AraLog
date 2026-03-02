@@ -1,0 +1,346 @@
+/* ==========================================================================
+   AraLog – View Styles
+   Styles specific to individual views
+   ========================================================================== */
+
+/* ── Observation List ── */
+.obs-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.obs-list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.obs-list-item:hover {
+  border-color: var(--border-default);
+  color: inherit;
+}
+
+.obs-list-item:active {
+  background: var(--bg-elevated);
+}
+
+.obs-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  background: var(--bg-surface);
+  flex-shrink: 0;
+}
+
+.obs-thumb-placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
+.obs-thumb-placeholder svg {
+  width: 24px;
+  height: 24px;
+}
+
+.obs-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.obs-species {
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-base);
+}
+
+.obs-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.obs-evidence {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+/* Sort/filter bar */
+.list-toolbar {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+
+.list-toolbar .search-bar {
+  flex: 1;
+}
+
+.sort-btn {
+  min-width: var(--tap-target-min);
+  min-height: var(--tap-target-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+}
+
+/* ── Observation Detail ── */
+.detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: var(--space-xl);
+}
+
+.detail-species {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  margin-bottom: var(--space-xs);
+}
+
+.detail-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.detail-section {
+  margin-bottom: var(--space-xl);
+}
+
+.detail-section h3 {
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-md);
+}
+
+.detail-field {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.detail-field:last-child {
+  border-bottom: none;
+}
+
+.detail-field-label {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  margin-right: var(--space-lg);
+}
+
+.detail-field-value {
+  text-align: right;
+  font-weight: var(--weight-medium);
+}
+
+/* Photo gallery in detail view */
+.detail-photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: var(--space-sm);
+}
+
+.detail-photo {
+  aspect-ratio: 1;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.detail-photo:active {
+  opacity: 0.8;
+}
+
+/* ── Observation Form ── */
+.form-section {
+  margin-bottom: var(--space-sm);
+}
+
+.form-section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  padding: var(--space-md) 0;
+}
+
+.form-section-header svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Auto-filled indicator */
+.auto-filled {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-xs);
+  color: var(--accent);
+  font-weight: var(--weight-medium);
+}
+
+.auto-filled::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* Photo upload area */
+.photo-upload-area {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 2px dashed var(--border-default);
+  border-radius: var(--radius-lg);
+  min-height: 100px;
+}
+
+.photo-upload-btn {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.photo-upload-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-dim);
+  color: var(--accent);
+}
+
+.photo-upload-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+.photo-preview {
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+
+.photo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+}
+
+.photo-preview .photo-remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--danger);
+  color: white;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg-primary);
+}
+
+/* ── Species List ── */
+.species-card {
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.species-card:last-child {
+  border-bottom: none;
+}
+
+.species-german {
+  font-weight: var(--weight-semibold);
+}
+
+.species-family {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.species-distribution {
+  display: inline-flex;
+  margin-top: var(--space-xs);
+}
+
+/* ── Settings ── */
+.settings-section {
+  margin-bottom: var(--space-2xl);
+}
+
+.settings-section h2 {
+  font-size: var(--text-lg);
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.storage-bar {
+  height: 8px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin: var(--space-md) 0;
+}
+
+.storage-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: var(--radius-full);
+  transition: width var(--transition-slow);
+}
+
+.storage-info {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}

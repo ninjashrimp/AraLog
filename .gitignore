@@ -1,0 +1,21 @@
+# AraLog .gitignore
+# Fundortschutz: Keine Beobachtungsdaten im Repository!
+
+# Node modules (nur für Entwicklung)
+node_modules/
+package.json
+package-lock.json
+
+# Datenexporte und Backups
+exports/
+backups/
+aralog-export-*.json
+aralog-fotos-*.zip
+
+# OS-Dateien
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
