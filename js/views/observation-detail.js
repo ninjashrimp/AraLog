@@ -63,6 +63,7 @@ async function init(container, params) {
                 <div class="detail-photo-wrapper" data-photo-id="${p.id}">
                   <img class="detail-photo" src="${url}" alt="${p.type || 'Foto'}">
                   <button type="button" class="photo-delete-btn" data-photo-id="${p.id}" aria-label="Foto löschen">×</button>
+                  <div class="photo-note" data-photo-id="${p.id}" title="Klicken zum Bearbeiten">${p.note ? escapeHtml(p.note) : '<span class="photo-note-placeholder">+ Notiz</span>'}</div>
                 </div>`;
             }).join('')}
           </div>
@@ -171,6 +172,34 @@ async function init(container, params) {
         console.error('[Detail] Photo delete error:', err);
         window.AraLog?.showToast('Fehler beim Löschen', 'error');
       }
+    });
+  });
+
+  // ── Photo note editing ──
+  container.querySelectorAll('.photo-note').forEach(noteEl => {
+    noteEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const photoId = parseInt(noteEl.dataset.photoId);
+      if (!photoId || noteEl.querySelector('input')) return;
+
+      const currentText = noteEl.textContent === '+ Notiz' ? '' : noteEl.textContent.trim();
+      noteEl.innerHTML = `<input type="text" class="photo-note-input" value="${currentText.replace(/"/g, '&quot;')}" placeholder="z.B. Dorsalansicht, Epigyne…" maxlength="120">`;
+      const input = noteEl.querySelector('input');
+      input.focus();
+
+      async function save() {
+        const val = input.value.trim();
+        try {
+          await db.photos.update(photoId, { note: val || null });
+        } catch (err) { console.error('[Note] Save:', err); }
+        noteEl.innerHTML = val ? escapeHtml(val) : '<span class="photo-note-placeholder">+ Notiz</span>';
+      }
+
+      input.addEventListener('blur', save);
+      input.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
+        if (ev.key === 'Escape') { input.value = currentText; input.blur(); }
+      });
     });
   });
 

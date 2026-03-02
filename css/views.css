@@ -381,16 +381,16 @@
 /* ── Detail Photo Gallery ── */
 .detail-photo-wrapper {
   position: relative;
-  aspect-ratio: 1;
   border-radius: var(--radius-md);
   overflow: visible;
 }
 
 .detail-photo-wrapper img {
   width: 100%;
-  height: 100%;
+  aspect-ratio: 1;
   object-fit: cover;
   border-radius: var(--radius-md);
+  display: block;
 }
 
 .photo-delete-btn {
@@ -531,4 +531,45 @@
 
 .exif-gps-bar--info svg {
   color: var(--text-tertiary);
+}
+
+/* ── Photo Annotations ── */
+.photo-note {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 2px 4px;
+  margin-top: 2px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-height: 20px;
+  line-height: 20px;
+}
+
+.photo-note:hover {
+  background: var(--bg-hover);
+}
+
+.photo-note-placeholder {
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.photo-note-input {
+  width: 100%;
+  font-size: var(--text-xs);
+  padding: 2px 4px;
+  border: 1px solid var(--accent-dim);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  text-align: center;
+  outline: none;
+}
+
+.photo-note-input:focus {
+  border-color: var(--accent);
 }
