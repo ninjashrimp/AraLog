@@ -7,6 +7,8 @@
 import db, { createObservationTemplate } from '../db.js';
 import { createSpeciesPicker } from '../components/species-picker.js';
 import { createTagInput, createToggleGroup } from '../components/tag-input.js';
+import { createPhotoUpload } from '../components/photo-upload.js';
+import { getPhotosForObservation } from '../services/photo-service.js';
 import {
   CONFIDENCE, EVIDENCE_TYPE, LIFE_STAGE, SEX,
   POSITION, APPROACH_REACTION, BEHAVIOR_TAGS, INTERACTION_TAGS,
@@ -21,6 +23,8 @@ let _data = null;
 
 // Component references for cleanup
 let _components = [];
+let _photoUpload = null;
+let _existingPhotos = [];
 
 async function init(container, params) {
   _container = container;
@@ -44,6 +48,14 @@ async function init(container, params) {
     }
   } else {
     _data = createObservationTemplate();
+  }
+
+  // Load existing photos for edit mode
+  _existingPhotos = [];
+  if (_isEditing && _observationId) {
+    try {
+      _existingPhotos = await getPhotosForObservation(_observationId);
+    } catch (e) { console.warn('[Form] Photo load:', e); }
   }
 
   // Render form shell
@@ -250,15 +262,9 @@ async function init(container, params) {
           <div class="form-section-header">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
             Fotos
+            <span class="photo-count" id="photo-count"></span>
           </div>
-          <div class="photo-upload-area" id="photo-area">
-            <label class="photo-upload-btn" for="photo-input">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M12 5v14m-7-7h14"/></svg>
-              Foto
-            </label>
-            <input type="file" id="photo-input" accept="image/*" capture="environment" multiple hidden>
-          </div>
-          <p class="form-hint">Foto-Verarbeitung kommt in Schritt 3</p>
+          <div id="photo-upload-mount"></div>
         </div>
 
         <!-- ════════════ NOTIZEN & TAGS (collapsible) ════════════ -->
@@ -523,6 +529,27 @@ function mountComponents() {
     }
   );
   _components.push(quickTags);
+
+  // Photo Upload
+  const photoMount = _container.querySelector('#photo-upload-mount');
+  if (photoMount) {
+    _photoUpload = createPhotoUpload({
+      observationId: _isEditing ? _observationId : null,
+      existingPhotos: _existingPhotos || [],
+      mode: 'form',
+      onPhotosChanged: ({ count }) => {
+        const countEl = _container?.querySelector('#photo-count');
+        if (countEl) countEl.textContent = count > 0 ? `(${count})` : '';
+        markUnsaved();
+      },
+    });
+    photoMount.appendChild(_photoUpload.el);
+    // Show initial count
+    const countEl = _container?.querySelector('#photo-count');
+    if (countEl && _existingPhotos?.length) {
+      countEl.textContent = `(${_existingPhotos.length})`;
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -637,6 +664,16 @@ function setupFormSubmit() {
         id = await db.observations.add({ ..._data });
       }
 
+      // Process pending photos (neue Beobachtung: Fotos haben noch keine observationId)
+      if (_photoUpload?.hasPendingPhotos()) {
+        try {
+          await _photoUpload.processPendingPhotos(id);
+        } catch (err) {
+          console.error('[Form] Photo processing error:', err);
+          // Don't block save – photos can be added later
+        }
+      }
+
       // Clear unsaved
       const wrapper = _container?.querySelector('[data-unsaved]');
       if (wrapper) wrapper.dataset.unsaved = 'false';
@@ -675,6 +712,11 @@ function destroy() {
     if (typeof c?.destroy === 'function') c.destroy();
   });
   _components = [];
+  if (_photoUpload) {
+    _photoUpload.destroy();
+    _photoUpload = null;
+  }
+  _existingPhotos = [];
   _container = null;
   _data = null;
   _isEditing = false;

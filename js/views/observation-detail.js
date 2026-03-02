@@ -1,11 +1,15 @@
 /* ==========================================================================
    AraLog – Observation Detail View
-   Single observation display with all fields and photos
+   Single observation display with all fields, photo gallery,
+   and retroactive photo upload
    ========================================================================== */
 
 import db from '../db.js';
+import { getPhotosForObservation, deletePhoto, createPhotoUrl, revokeAllPhotoUrls } from '../services/photo-service.js';
+import { createPhotoUpload } from '../components/photo-upload.js';
 
 let _container = null;
+let _photoUpload = null;
 
 async function init(container, params) {
   _container = container;
@@ -23,9 +27,7 @@ async function init(container, params) {
   }
 
   // Load photos
-  const photos = obs.photoIds?.length
-    ? await db.photos.where('id').anyOf(obs.photoIds).toArray()
-    : [];
+  const photos = await getPhotosForObservation(id);
 
   container.innerHTML = `
     <div class="view-container">
@@ -50,13 +52,25 @@ async function init(container, params) {
         </div>
       </div>
 
-      ${photos.length > 0 ? `
-        <div class="detail-section">
-          <div class="detail-photos">
-            ${photos.map(p => `<img class="detail-photo" src="${URL.createObjectURL(p.thumbnail || p.blob)}" alt="${p.type || 'Foto'}">`).join('')}
+      <!-- ── Photo Gallery ── -->
+      <div class="detail-section" id="photo-section">
+        <h3>Fotos ${photos.length > 0 ? `(${photos.length})` : ''}</h3>
+        ${photos.length > 0 ? `
+          <div class="detail-photos" id="photo-gallery">
+            ${photos.map(p => {
+              const url = createPhotoUrl(p.thumbnail || p.blob);
+              return `
+                <div class="detail-photo-wrapper" data-photo-id="${p.id}">
+                  <img class="detail-photo" src="${url}" alt="${p.type || 'Foto'}">
+                  <button type="button" class="photo-delete-btn" data-photo-id="${p.id}" aria-label="Foto löschen">×</button>
+                </div>`;
+            }).join('')}
           </div>
-        </div>
-      ` : ''}
+        ` : ''}
+
+        <!-- Nachträglicher Upload -->
+        <div id="detail-photo-upload" class="detail-photo-add"></div>
+      </div>
 
       <div class="detail-section">
         <h3>Erfassung</h3>
@@ -120,26 +134,84 @@ async function init(container, params) {
       ${obs.notes || obs.tags?.length ? `
         <div class="detail-section">
           <h3>Notizen</h3>
-          ${obs.notes ? `<p style="margin-bottom: var(--space-md);">${obs.notes}</p>` : ''}
+          ${obs.notes ? `<p style="margin-bottom: var(--space-md);">${escapeHtml(obs.notes)}</p>` : ''}
           ${obs.tags?.length ? `<div class="tag-container">${obs.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>` : ''}
         </div>
       ` : ''}
     </div>
   `;
 
-  // Delete handler
+  // ── Mount retroactive photo upload ──
+  const uploadMount = container.querySelector('#detail-photo-upload');
+  if (uploadMount) {
+    _photoUpload = createPhotoUpload({
+      observationId: id,
+      existingPhotos: [], // Already shown in gallery above
+      mode: 'detail',
+      onPhotosChanged: () => {
+        window.AraLog?.showToast('Foto hinzugefügt', 'success');
+        init(container, params); // Reload view
+      },
+    });
+    uploadMount.appendChild(_photoUpload.el);
+  }
+
+  // ── Photo delete from gallery ──
+  container.querySelectorAll('.photo-delete-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const photoId = parseInt(btn.dataset.photoId);
+      if (!photoId || !confirm('Foto wirklich löschen?')) return;
+
+      try {
+        await deletePhoto(photoId, id);
+        window.AraLog?.showToast('Foto gelöscht', 'success');
+        init(container, params);
+      } catch (err) {
+        console.error('[Detail] Photo delete error:', err);
+        window.AraLog?.showToast('Fehler beim Löschen', 'error');
+      }
+    });
+  });
+
+  // ── Photo fullscreen on tap ──
+  container.querySelectorAll('.detail-photo').forEach(img => {
+    img.addEventListener('click', () => showFullscreenPhoto(img.src));
+  });
+
+  // ── Delete observation ──
   container.querySelector('#btn-delete')?.addEventListener('click', async () => {
     if (confirm('Beobachtung wirklich löschen?')) {
-      // Delete associated photos
-      if (obs.photoIds?.length) {
-        await db.photos.where('id').anyOf(obs.photoIds).delete();
-      }
+      for (const p of photos) await db.photos.delete(p.id);
       await db.observations.delete(id);
       window.AraLog?.showToast('Beobachtung gelöscht', 'success');
       window.AraLog?.navigate('');
     }
   });
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Fullscreen Photo Viewer
+// ═══════════════════════════════════════════════════════════════════
+
+function showFullscreenPhoto(src) {
+  const overlay = document.createElement('div');
+  overlay.className = 'photo-fullscreen';
+  overlay.innerHTML = `
+    <img src="${src}" alt="Vollbild">
+    <button class="photo-fullscreen-close" aria-label="Schließen">×</button>
+  `;
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay || e.target.classList.contains('photo-fullscreen-close')) {
+      overlay.remove();
+    }
+  });
+  document.body.appendChild(overlay);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Helpers
+// ═══════════════════════════════════════════════════════════════════
 
 function field(label, value) {
   if (!value && value !== 0) return '';
@@ -160,7 +232,18 @@ function formatDate(dateStr) {
   } catch { return dateStr; }
 }
 
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
 function destroy() {
+  revokeAllPhotoUrls();
+  if (_photoUpload) {
+    _photoUpload.destroy();
+    _photoUpload = null;
+  }
   _container = null;
 }
 
