@@ -70,14 +70,12 @@ async function registerServiceWorker() {
     const reg = await navigator.serviceWorker.register('./sw.js');
     app.swRegistration = reg;
 
-    reg.addEventListener('updatefound', () => {
-      const newWorker = reg.installing;
-      newWorker.addEventListener('statechange', () => {
-        if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
-          // New version available
-          showUpdateBanner();
-        }
-      });
+    // Detect when a new SW takes control
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshing) return;
+      refreshing = true;
+      showUpdateBanner();
     });
 
     console.log('[AraLog] Service Worker registered');
