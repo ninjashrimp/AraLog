@@ -463,3 +463,63 @@
   border: none;
   cursor: pointer;
 }
+
+/* ── EXIF GPS Hint Bar ── */
+.exif-gps-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  margin-top: var(--space-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--accent-dim);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  animation: fadeIn 0.2s ease;
+}
+
+.exif-gps-bar svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.exif-gps-bar span {
+  flex: 1;
+  min-width: 0;
+}
+
+.exif-gps-bar strong {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.btn-accent {
+  background: var(--accent);
+  color: var(--bg-primary);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+
+.btn-accent:hover {
+  background: var(--accent-hover);
+}
+
+.exif-gps-dismiss {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.exif-gps-dismiss:hover {
+  color: var(--text-primary);
+}

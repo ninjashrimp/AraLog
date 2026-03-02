@@ -3,7 +3,7 @@
    Kamera-Capture + Galerie-Upload, Vorschau mit Thumbnails
    ========================================================================== */
 
-import { processAndSavePhoto, deletePhoto, createPhotoUrl, revokeAllPhotoUrls } from '../services/photo-service.js';
+import { processAndSavePhoto, deletePhoto, createPhotoUrl, revokeAllPhotoUrls, extractBasicExif } from '../services/photo-service.js';
 
 /**
  * Erstellt eine Photo-Upload-Area.
@@ -12,10 +12,11 @@ import { processAndSavePhoto, deletePhoto, createPhotoUrl, revokeAllPhotoUrls } 
  * @param {number|null} options.observationId - null bei neuer Beobachtung
  * @param {Array} options.existingPhotos - bereits gespeicherte Fotos [{id, thumbnail}]
  * @param {Function} options.onPhotosChanged - Callback bei Änderungen
+ * @param {Function} options.onGpsFound - Callback wenn EXIF-GPS gefunden: ({lat, lng, date}) => void
  * @param {string} options.mode - 'form' (im Formular) oder 'detail' (nachträglich)
  * @returns {Object} { el, addPhotosFromFiles, getPhotoIds, setObservationId, destroy }
  */
-export function createPhotoUpload({ observationId = null, existingPhotos = [], onPhotosChanged = null, mode = 'form' } = {}) {
+export function createPhotoUpload({ observationId = null, existingPhotos = [], onPhotosChanged = null, onGpsFound = null, mode = 'form' } = {}) {
   let _observationId = observationId;
   let _photoEntries = []; // [{id, thumbnailUrl, status: 'saved'|'pending'|'processing'}]
   let _pendingFiles = [];  // Files die noch keine observationId haben
@@ -111,6 +112,11 @@ export function createPhotoUpload({ observationId = null, existingPhotos = [], o
             type: 'Spinne',
           });
 
+          // GPS aus EXIF melden
+          if (result.exif?.lat && result.exif?.lng) {
+            onGpsFound?.({ lat: result.exif.lat, lng: result.exif.lng, date: result.exif.date });
+          }
+
           // Temp URL freigeben, Thumbnail-URL setzen
           URL.revokeObjectURL(tempUrl);
           const thumbUrl = createPhotoUrl(
@@ -127,6 +133,14 @@ export function createPhotoUpload({ observationId = null, existingPhotos = [], o
           _pendingFiles.push({ file, idx });
           _photoEntries[idx].status = 'pending';
           render();
+
+          // EXIF trotzdem auslesen für GPS-Hinweis
+          try {
+            const exif = await extractBasicExif(file);
+            if (exif?.lat && exif?.lng) {
+              onGpsFound?.({ lat: exif.lat, lng: exif.lng, date: exif.date });
+            }
+          } catch (e) { /* ignore */ }
         }
       } catch (err) {
         console.error('[PhotoUpload] Fehler:', err);

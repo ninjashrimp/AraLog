@@ -74,7 +74,7 @@ export async function processAndSavePhoto(file, { observationId, type = 'Spinne'
     }
   }
 
-  return { id, thumbnail };
+  return { id, thumbnail, exif };
 }
 
 /**
@@ -201,7 +201,7 @@ export function revokeAllPhotoUrls() {
 // Liest nur: DateTimeOriginal, GPS-Koordinaten
 // ═══════════════════════════════════════════════════════════════════
 
-async function extractBasicExif(file) {
+export async function extractBasicExif(file) {
   const result = { date: null, lat: null, lng: null };
 
   try {

@@ -265,6 +265,7 @@ async function init(container, params) {
             <span class="photo-count" id="photo-count"></span>
           </div>
           <div id="photo-upload-mount"></div>
+          <div id="exif-gps-hint"></div>
         </div>
 
         <!-- ════════════ NOTIZEN & TAGS (collapsible) ════════════ -->
@@ -542,6 +543,9 @@ function mountComponents() {
         if (countEl) countEl.textContent = count > 0 ? `(${count})` : '';
         markUnsaved();
       },
+      onGpsFound: ({ lat, lng }) => {
+        showExifGpsHint(lat, lng);
+      },
     });
     photoMount.appendChild(_photoUpload.el);
     // Show initial count
@@ -618,6 +622,53 @@ function setupGPS() {
   }
 
   gpsBtn?.addEventListener('click', requestGPS);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// EXIF GPS Hint
+// ═══════════════════════════════════════════════════════════════════
+
+function showExifGpsHint(lat, lng) {
+  const hintEl = _container?.querySelector('#exif-gps-hint');
+  if (!hintEl) return;
+
+  // Nicht anzeigen wenn Koordinaten identisch mit aktuellen sind
+  if (_data.lat && _data.lng &&
+      Math.abs(_data.lat - lat) < 0.0001 && Math.abs(_data.lng - lng) < 0.0001) {
+    return;
+  }
+
+  hintEl.innerHTML = `
+    <div class="exif-gps-bar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+      </svg>
+      <span>Foto enthält GPS: <strong>${lat.toFixed(5)}, ${lng.toFixed(5)}</strong></span>
+      <button type="button" class="btn btn-sm btn-accent" id="btn-adopt-gps">Übernehmen</button>
+      <button type="button" class="exif-gps-dismiss" aria-label="Schließen">×</button>
+    </div>
+  `;
+
+  hintEl.querySelector('#btn-adopt-gps')?.addEventListener('click', () => {
+    _data.lat = lat;
+    _data.lng = lng;
+
+    const coordsInput = _container?.querySelector('#f-coords');
+    if (coordsInput) coordsInput.value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+
+    const gpsStatus = _container?.querySelector('#gps-status');
+    if (gpsStatus) {
+      gpsStatus.innerHTML = '<span class="gps-dot good"></span><span>Aus Foto-EXIF übernommen</span>';
+    }
+
+    hintEl.innerHTML = '';
+    markUnsaved();
+    window.AraLog?.showToast('GPS-Position aus Foto übernommen', 'success');
+  });
+
+  hintEl.querySelector('.exif-gps-dismiss')?.addEventListener('click', () => {
+    hintEl.innerHTML = '';
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════
