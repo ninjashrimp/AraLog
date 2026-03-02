@@ -3,7 +3,8 @@
    Dexie.js setup, schema definition, migrations
    ========================================================================== */
 
-import Dexie from '../lib/dexie.min.js';
+// Dexie is loaded globally via <script> tag in index.html
+const Dexie = window.Dexie;
 
 const db = new Dexie('AraLogDB');
 
