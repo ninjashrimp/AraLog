@@ -45,27 +45,45 @@ async function init(container, params) {
 async function loadThumbnails(observations) {
   const map = new Map();
 
-  // Collect first photoId per observation
-  const toLoad = [];
+  // Strategy 1: use obs.photoIds where available
+  const byPhotoId = [];
+  const needsFallback = [];
+
   for (const obs of observations) {
     if (obs.photoIds?.length) {
-      toLoad.push({ obsId: obs.id, photoId: obs.photoIds[0] });
+      byPhotoId.push({ obsId: obs.id, photoId: obs.photoIds[0] });
+    } else {
+      needsFallback.push(obs.id);
     }
   }
 
-  if (!toLoad.length) return map;
+  // Batch-load by photoId
+  if (byPhotoId.length) {
+    const ids = byPhotoId.map(t => t.photoId);
+    const photos = await db.photos.where('id').anyOf(ids).toArray();
+    const photoMap = new Map(photos.map(p => [p.id, p]));
 
-  // Batch-load from DB
-  const photoIds = toLoad.map(t => t.photoId);
-  const photos = await db.photos.where('id').anyOf(photoIds).toArray();
-  const photoMap = new Map(photos.map(p => [p.id, p]));
+    for (const { obsId, photoId } of byPhotoId) {
+      const photo = photoMap.get(photoId);
+      if (photo?.thumbnail) {
+        const url = URL.createObjectURL(photo.thumbnail);
+        _thumbUrls.push(url);
+        map.set(obsId, url);
+      }
+    }
+  }
 
-  for (const { obsId, photoId } of toLoad) {
-    const photo = photoMap.get(photoId);
-    if (photo?.thumbnail) {
-      const url = URL.createObjectURL(photo.thumbnail);
-      _thumbUrls.push(url);
-      map.set(obsId, url);
+  // Strategy 2: Fallback – query photos table by observationId
+  if (needsFallback.length) {
+    for (const obsId of needsFallback) {
+      try {
+        const photo = await db.photos.where('observationId').equals(obsId).first();
+        if (photo?.thumbnail) {
+          const url = URL.createObjectURL(photo.thumbnail);
+          _thumbUrls.push(url);
+          map.set(obsId, url);
+        }
+      } catch (e) { /* no photos */ }
     }
   }
 
