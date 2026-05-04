@@ -2,7 +2,7 @@
    AraLog – Artenkatalog (species-catalog.js)
    Kuratierte Liste häufiger Araneae für die Region Berlin/Brandenburg
    Sortiert nach Familie, dann alphabetisch nach wissenschaftlichem Namen
-   Stand: März 2026 – kuratiert mit Fach-Input
+   Stand: Mai 2026 – kuratiert mit Fach-Input
    ========================================================================== */
 
 export const speciesCatalog = [
@@ -106,6 +106,7 @@ export const speciesCatalog = [
   { id: 'evarcha_falcata', scientificName: 'Evarcha falcata', germanName: 'Sichelspringspinne', family: 'Salticidae', distribution: 'häufig' },
   { id: 'heliophanus_cupreus', scientificName: 'Heliophanus cupreus', germanName: 'Kupferne Sonnenspringspinne', family: 'Salticidae', distribution: 'häufig' },
   { id: 'heliophanus_flavipes', scientificName: 'Heliophanus flavipes', germanName: 'Gelbfüßige Sonnenspringspinne', family: 'Salticidae', distribution: 'mäßig verbreitet' },
+  { id: 'macaroeris_nidicolens', scientificName: 'Macaroeris nidicolens', germanName: 'Balkonspringspinne', family: 'Salticidae', distribution: 'mäßig verbreitet' },
   { id: 'marpissa_muscosa', scientificName: 'Marpissa muscosa', germanName: 'Rindenspringspinne', family: 'Salticidae', distribution: 'häufig' },
   { id: 'pseudeuophrys_lanigera', scientificName: 'Pseudeuophrys lanigera', germanName: 'Mauerspringspinne', family: 'Salticidae', distribution: 'häufig' },
   { id: 'salticus_scenicus', scientificName: 'Salticus scenicus', germanName: 'Zebraspringspinne', family: 'Salticidae', distribution: 'häufig' },
