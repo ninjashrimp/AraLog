@@ -340,10 +340,10 @@ function mountComponents() {
   const confidence = createToggleGroup(
     _container.querySelector('#confidence-mount'),
     {
-      tags: CONFIDENCE,
-      selected: _data.confidence ? [_data.confidence] : [],
+      values: CONFIDENCE,
+      selected: _data.confidence || '',
       multiple: false,
-      onChange: (tags) => { _data.confidence = tags[0] || ''; markUnsaved(); },
+      onChange: (val) => { _data.confidence = val || ''; markUnsaved(); },
     }
   );
   _components.push(confidence);
@@ -352,10 +352,10 @@ function mountComponents() {
   const evidenceType = createToggleGroup(
     _container.querySelector('#evidence-type-mount'),
     {
-      tags: EVIDENCE_TYPE,
-      selected: _data.evidenceType ? [_data.evidenceType] : [],
+      values: EVIDENCE_TYPE,
+      selected: _data.evidenceType || '',
       multiple: false,
-      onChange: (tags) => { _data.evidenceType = tags[0] || ''; markUnsaved(); },
+      onChange: (val) => { _data.evidenceType = val || ''; markUnsaved(); },
     }
   );
   _components.push(evidenceType);
@@ -364,10 +364,10 @@ function mountComponents() {
   const lifeStage = createToggleGroup(
     _container.querySelector('#life-stage-mount'),
     {
-      tags: LIFE_STAGE,
-      selected: _data.lifeStage ? [_data.lifeStage] : [],
+      values: LIFE_STAGE,
+      selected: _data.lifeStage || '',
       multiple: false,
-      onChange: (tags) => { _data.lifeStage = tags[0] || ''; markUnsaved(); },
+      onChange: (val) => { _data.lifeStage = val || ''; markUnsaved(); },
     }
   );
   _components.push(lifeStage);
@@ -376,10 +376,10 @@ function mountComponents() {
   const sex = createToggleGroup(
     _container.querySelector('#sex-mount'),
     {
-      tags: SEX,
-      selected: _data.sex ? [_data.sex] : [],
+      values: SEX,
+      selected: _data.sex || '',
       multiple: false,
-      onChange: (tags) => { _data.sex = tags[0] || ''; markUnsaved(); },
+      onChange: (val) => { _data.sex = val || ''; markUnsaved(); },
     }
   );
   _components.push(sex);
@@ -400,13 +400,12 @@ function mountComponents() {
   const position = createToggleGroup(
     _container.querySelector('#position-mount'),
     {
-      tags: POSITION,
-      selected: _data.position ? [_data.position] : [],
-      multiple: false,
-      onChange: (tags) => {
-        _data.position = tags[0] || '';
+      values: POSITION,
+      selected: _data.position || '',
+      onChange: (val) => {
+        _data.position = val || '';
         const ft = _container?.querySelector('#f-position-freetext');
-        if (ft) ft.style.display = tags[0] === 'Sonstiges' ? '' : 'none';
+        if (ft) ft.style.display = val === 'Sonstiges' ? '' : 'none';
         markUnsaved();
       },
     }
@@ -417,11 +416,10 @@ function mountComponents() {
   const spiderVisible = createToggleGroup(
     _container.querySelector('#spider-visible-mount'),
     {
-      tags: ['Ja', 'Nein'],
-      selected: _data.spiderVisible === true ? ['Ja'] : _data.spiderVisible === false ? ['Nein'] : [],
-      multiple: false,
-      onChange: (tags) => {
-        _data.spiderVisible = tags[0] === 'Ja' ? true : tags[0] === 'Nein' ? false : null;
+      values: ['Ja', 'Nein'],
+      selected: _data.spiderVisible === true ? 'Ja' : _data.spiderVisible === false ? 'Nein' : '',
+      onChange: (val) => {
+        _data.spiderVisible = val === 'Ja' ? true : val === 'Nein' ? false : null;
         markUnsaved();
       },
     }
@@ -432,10 +430,10 @@ function mountComponents() {
   const approach = createToggleGroup(
     _container.querySelector('#approach-mount'),
     {
-      tags: APPROACH_REACTION,
-      selected: _data.approachReaction ? [_data.approachReaction] : [],
+      values: APPROACH_REACTION,
+      selected: _data.approachReaction || '',
       multiple: false,
-      onChange: (tags) => { _data.approachReaction = tags[0] || ''; markUnsaved(); },
+      onChange: (val) => { _data.approachReaction = val || ''; markUnsaved(); },
     }
   );
   _components.push(approach);
@@ -456,10 +454,10 @@ function mountComponents() {
   const webType = createToggleGroup(
     _container.querySelector('#web-type-mount'),
     {
-      tags: WEB_TYPE,
-      selected: _data.webType ? [_data.webType] : [],
+      values: WEB_TYPE,
+      selected: _data.webType || '',
       multiple: false,
-      onChange: (tags) => { _data.webType = tags[0] || ''; markUnsaved(); },
+      onChange: (val) => { _data.webType = val || ''; markUnsaved(); },
     }
   );
   _components.push(webType);
@@ -468,10 +466,10 @@ function mountComponents() {
   const webCondition = createToggleGroup(
     _container.querySelector('#web-condition-mount'),
     {
-      tags: WEB_CONDITION,
-      selected: _data.webCondition ? [_data.webCondition] : [],
+      values: WEB_CONDITION,
+      selected: _data.webCondition || '',
       multiple: false,
-      onChange: (tags) => { _data.webCondition = tags[0] || ''; markUnsaved(); },
+      onChange: (val) => { _data.webCondition = val || ''; markUnsaved(); },
     }
   );
   _components.push(webCondition);
@@ -480,10 +478,10 @@ function mountComponents() {
   const cocoonCondition = createToggleGroup(
     _container.querySelector('#cocoon-condition-mount'),
     {
-      tags: COCOON_CONDITION,
-      selected: _data.cocoonCondition ? [_data.cocoonCondition] : [],
+      values: COCOON_CONDITION,
+      selected: _data.cocoonCondition || '',
       multiple: false,
-      onChange: (tags) => { _data.cocoonCondition = tags[0] || ''; markUnsaved(); },
+      onChange: (val) => { _data.cocoonCondition = val || ''; markUnsaved(); },
     }
   );
   _components.push(cocoonCondition);
