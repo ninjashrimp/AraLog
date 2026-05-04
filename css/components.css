@@ -175,9 +175,9 @@
 }
 
 .tag.selected {
-  background: var(--accent-bg);
-  color: var(--accent-light);
-  border-color: var(--accent-dim);
+  background: rgba(204, 163, 82, 0.25);
+  color: #cca352;
+  border-color: #cca352;
 }
 
 .tag.dimmed {
