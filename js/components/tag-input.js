@@ -153,14 +153,13 @@ export function createTagInput(container, options = {}) {
 }
 
 /**
- * Creates a simple toggle group (single-select, styled as toggle buttons).
- * Used for: confidence, evidenceType, lifeStage, sex
+ * Creates a single-select toggle group using the same pill style as createTagInput.
+ * Unselected options are dimmed when a selection is active.
  *
  * @param {HTMLElement} container
  * @param {Object} options
  * @param {string[]} options.values - Available values
  * @param {string} options.selected - Initially selected value
- * @param {Object} options.colorMap - Optional {value: 'css-class'} for colored toggles
  * @param {Function} options.onChange - Callback(selectedValue: string)
  * @returns {Object} - { getValue(), setValue(val), destroy() }
  */
@@ -168,37 +167,47 @@ export function createToggleGroup(container, options = {}) {
   const {
     values = [],
     selected = '',
-    colorMap = {},
     onChange = () => {},
   } = options;
 
   let currentValue = selected;
 
   container.innerHTML = `
-    <div class="toggle-group">
+    <div class="tag-container tag-container--single">
       ${values.map(v => `
-        <div class="toggle-option ${v === currentValue ? 'selected' : ''}"
-             data-value="${escapeAttr(v)}"
-             ${colorMap[v] ? `style="--toggle-color: var(${colorMap[v]})"` : ''}>
+        <span class="tag ${v === currentValue ? 'selected' : ''} ${currentValue && v !== currentValue ? 'dimmed' : ''}"
+              data-value="${escapeAttr(v)}">
           ${escapeHtml(v)}
-        </div>
+        </span>
       `).join('')}
     </div>
   `;
 
-  const group = container.querySelector('.toggle-group');
+  const group = container.querySelector('.tag-container--single');
 
   function handleClick(e) {
-    const option = e.target.closest('.toggle-option');
-    if (!option) return;
+    const tag = e.target.closest('.tag[data-value]');
+    if (!tag) return;
 
-    const value = option.dataset.value;
+    const value = tag.dataset.value;
 
-    group.querySelectorAll('.toggle-option').forEach(o => o.classList.remove('selected'));
-    option.classList.add('selected');
+    if (value === currentValue) {
+      // Deselect
+      currentValue = '';
+    } else {
+      currentValue = value;
+    }
 
-    currentValue = value;
-    onChange(value);
+    updateStates();
+    onChange(currentValue);
+  }
+
+  function updateStates() {
+    group.querySelectorAll('.tag[data-value]').forEach(el => {
+      const isSelected = el.dataset.value === currentValue;
+      el.classList.toggle('selected', isSelected);
+      el.classList.toggle('dimmed', !!currentValue && !isSelected);
+    });
   }
 
   group.addEventListener('click', handleClick);
@@ -209,9 +218,7 @@ export function createToggleGroup(container, options = {}) {
     },
     setValue(val) {
       currentValue = val;
-      group.querySelectorAll('.toggle-option').forEach(o => {
-        o.classList.toggle('selected', o.dataset.value === val);
-      });
+      updateStates();
     },
     setDisabled(disabled) {
       container.classList.toggle('field-disabled', disabled);

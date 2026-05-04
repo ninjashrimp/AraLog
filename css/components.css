@@ -229,6 +229,11 @@
 }
 
 .tag.selected {
+}
+
+.tag.dimmed {
+  opacity: 0.35;
+  filter: none;
   background: var(--accent-bg);
   color: var(--accent-light);
   border-color: var(--accent-dim);
