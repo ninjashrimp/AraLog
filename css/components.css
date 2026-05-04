@@ -152,6 +152,7 @@
 
 /* ── Toggle Group (for confidence etc.) ── */
 .toggle-group {
+  flex-wrap: wrap;
   display: flex;
   gap: 2px;
   background: var(--bg-input);
