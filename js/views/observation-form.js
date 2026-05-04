@@ -85,9 +85,9 @@ async function init(container, params) {
           <div class="form-group">
             <label class="form-label">GPS-Position</label>
             <div style="display:flex; gap:var(--space-sm); align-items:center;">
-              <input type="text" class="form-input" id="f-coords" readonly
+              <input type="text" class="form-input" id="f-coords"
                      value="${_data.lat && _data.lng ? `${_data.lat.toFixed(6)}, ${_data.lng.toFixed(6)}` : ''}"
-                     placeholder="Wird ermittelt...">
+                     placeholder="52.1234, 13.5678 oder GPS nutzen">
               <button type="button" class="btn btn-secondary btn-sm" id="btn-gps" title="GPS aktualisieren">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
                   <circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>
@@ -223,12 +223,16 @@ async function init(container, params) {
               <div id="habitat-tags-mount"></div>
             </div>
             <div class="form-group">
-              <label class="form-label">Trägerpflanze</label>
-              <input type="text" class="form-input" id="f-plant" value="${escapeHtml(_data.plant || '')}" placeholder="z.B. Brennnessel, Eiche...">
+              <label class="form-label">Pflanze / Substrat</label>
+              <input type="text" class="form-input" id="f-plant"
+                     placeholder="z.B. Brennnessel, Eiche, Mauerwerk..."
+                     value="${escapeHtml(_data.plant || '')}">
             </div>
             <div class="form-group">
-              <label class="form-label">Fundhöhe über Boden</label>
-              <input type="text" class="form-input" id="f-height" value="${escapeHtml(_data.heightAboveGround || '')}" placeholder="z.B. ca. 40 cm">
+              <label class="form-label">Höhe über Boden</label>
+              <input type="text" class="form-input" id="f-height"
+                     placeholder="z.B. Bodennah, 1.5m, Deckenhöhe..."
+                     value="${escapeHtml(_data.heightAboveGround || '')}">
             </div>
           </div>
         </div>
@@ -236,7 +240,7 @@ async function init(container, params) {
         <!-- ════════════ UMGEBUNG (collapsible) ════════════ -->
         <div class="collapsible" id="section-weather">
           <div class="collapsible-header" data-toggle="section-weather">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/><circle cx="12" cy="12" r="4"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
             <h3>Umgebung</h3>
             <svg class="collapsible-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
@@ -246,13 +250,11 @@ async function init(container, params) {
               <div id="weather-tags-mount"></div>
             </div>
             <div class="form-group">
-              <label class="form-label">Temperatur</label>
-              <div class="input-with-unit">
-                <input type="number" class="form-input" id="f-temperature"
-                       value="${_data.temperature != null ? _data.temperature : ''}"
-                       placeholder="—" step="0.5" min="-30" max="50">
-                <span class="unit">°C</span>
-              </div>
+              <label class="form-label">Temperatur (°C)</label>
+              <input type="number" class="form-input" id="f-temperature"
+                     step="0.5" min="-30" max="50"
+                     placeholder="z.B. 18.5"
+                     value="${_data.temperature != null ? _data.temperature : ''}">
             </div>
           </div>
         </div>
@@ -268,53 +270,46 @@ async function init(container, params) {
           <div id="exif-gps-hint"></div>
         </div>
 
-        <!-- ════════════ NOTIZEN & TAGS (collapsible) ════════════ -->
-        <div class="collapsible" id="section-notes">
-          <div class="collapsible-header" data-toggle="section-notes">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            <h3>Notizen & Tags</h3>
-            <svg class="collapsible-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        <!-- ════════════ NOTIZEN & TAGS ════════════ -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Notizen & Tags
           </div>
-          <div class="collapsible-body">
-            <div class="form-group">
-              <label class="form-label">Notizen</label>
-              <textarea class="form-textarea" id="f-notes" placeholder="Freitext-Notizen...">${escapeHtml(_data.notes || '')}</textarea>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Tags</label>
-              <div id="quick-tags-mount"></div>
-            </div>
+
+          <div class="form-group">
+            <label class="form-label">Notizen</label>
+            <textarea class="form-input form-textarea" id="f-notes" rows="3"
+                      placeholder="Freitext-Beobachtungen...">${escapeHtml(_data.notes || '')}</textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Tags</label>
+            <div id="quick-tags-mount"></div>
           </div>
         </div>
 
-        <!-- ════════════ SUBMIT ════════════ -->
-        <div style="padding: var(--space-xl) 0 var(--space-2xl);">
-          <button type="submit" class="btn btn-primary btn-block btn-lg" id="btn-save">
-            ${_isEditing ? 'Änderungen speichern' : 'Beobachtung speichern'}
+        <!-- ════════════ SAVE ════════════ -->
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary btn-lg btn-block" id="btn-save">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+            </svg>
+            ${_isEditing ? 'Aktualisieren' : 'Speichern'}
           </button>
+          <a href="#${_isEditing ? 'view/' + _observationId : ''}" class="btn btn-secondary btn-block">Abbrechen</a>
         </div>
 
       </form>
     </div>
   `;
 
-  // ── Mount Components ──
+  // Mount interactive components
   mountComponents();
-
-  // ── Setup Collapsibles ──
   setupCollapsibles();
-
-  // ── Setup GPS ──
   setupGPS();
-
-  // ── Setup Form Submit ──
   setupFormSubmit();
-
-  // ── Track unsaved changes ──
-  container.addEventListener('input', markUnsaved);
-  container.addEventListener('click', (e) => {
-    if (e.target.closest('.tag, .toggle-option')) markUnsaved();
-  });
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -326,12 +321,16 @@ function mountComponents() {
   const speciesPicker = createSpeciesPicker(
     _container.querySelector('#species-picker-mount'),
     {
-      value: _data.speciesName || '',
-      speciesId: _data.speciesId,
-      onChange: (result) => {
-        _data.speciesId = result.speciesId;
-        _data.speciesName = result.speciesName;
-        _data.scientificName = result.scientificName;
+      initialValue: {
+        speciesName: _data.speciesName || '',
+        scientificName: _data.scientificName || '',
+        speciesId: _data.speciesId || null,
+      },
+      onChange: (val) => {
+        _data.speciesName = val.speciesName;
+        _data.scientificName = val.scientificName;
+        _data.speciesId = val.speciesId;
+        markUnsaved();
       },
     }
   );
@@ -341,9 +340,10 @@ function mountComponents() {
   const confidence = createToggleGroup(
     _container.querySelector('#confidence-mount'),
     {
-      values: CONFIDENCE,
-      selected: _data.confidence || 'unsicher',
-      onChange: (val) => { _data.confidence = val; },
+      tags: CONFIDENCE,
+      selected: _data.confidence ? [_data.confidence] : [],
+      multiple: false,
+      onChange: (tags) => { _data.confidence = tags[0] || ''; markUnsaved(); },
     }
   );
   _components.push(confidence);
@@ -352,45 +352,37 @@ function mountComponents() {
   const evidenceType = createToggleGroup(
     _container.querySelector('#evidence-type-mount'),
     {
-      values: EVIDENCE_TYPE,
-      selected: _data.evidenceType || 'Spinne',
-      onChange: (val) => {
-        _data.evidenceType = val;
-        const spiderFields = _container.querySelector('#spider-only-fields');
-        if (spiderFields) {
-          spiderFields.classList.toggle('field-disabled', val !== 'Spinne');
-        }
-      },
+      tags: EVIDENCE_TYPE,
+      selected: _data.evidenceType ? [_data.evidenceType] : [],
+      multiple: false,
+      onChange: (tags) => { _data.evidenceType = tags[0] || ''; markUnsaved(); },
     }
   );
   _components.push(evidenceType);
 
-  // Life Stage (spider-only)
+  // Life Stage
   const lifeStage = createToggleGroup(
     _container.querySelector('#life-stage-mount'),
     {
-      values: LIFE_STAGE,
-      selected: _data.lifeStage || 'Adult',
-      onChange: (val) => { _data.lifeStage = val; },
+      tags: LIFE_STAGE,
+      selected: _data.lifeStage ? [_data.lifeStage] : [],
+      multiple: false,
+      onChange: (tags) => { _data.lifeStage = tags[0] || ''; markUnsaved(); },
     }
   );
   _components.push(lifeStage);
 
-  // Sex (spider-only)
+  // Sex
   const sex = createToggleGroup(
     _container.querySelector('#sex-mount'),
     {
-      values: SEX,
-      selected: _data.sex || 'Unbekannt',
-      onChange: (val) => { _data.sex = val; },
+      tags: SEX,
+      selected: _data.sex ? [_data.sex] : [],
+      multiple: false,
+      onChange: (tags) => { _data.sex = tags[0] || ''; markUnsaved(); },
     }
   );
   _components.push(sex);
-
-  // Initial spider-only state
-  if (_data.evidenceType !== 'Spinne') {
-    _container.querySelector('#spider-only-fields')?.classList.add('field-disabled');
-  }
 
   // Behavior Tags
   const behaviorTags = createTagInput(
@@ -399,24 +391,23 @@ function mountComponents() {
       tags: BEHAVIOR_TAGS,
       selected: _data.behaviorTags || [],
       multiple: true,
-      onChange: (tags) => { _data.behaviorTags = tags; },
+      onChange: (tags) => { _data.behaviorTags = tags; markUnsaved(); },
     }
   );
   _components.push(behaviorTags);
 
-  // Position (single-select + freetext)
-  const position = createTagInput(
+  // Position
+  const position = createToggleGroup(
     _container.querySelector('#position-mount'),
     {
-      tags: [...POSITION, 'Sonstiges'],
+      tags: POSITION,
       selected: _data.position ? [_data.position] : [],
       multiple: false,
       onChange: (tags) => {
         _data.position = tags[0] || '';
-        const freetext = _container.querySelector('#f-position-freetext');
-        if (freetext) {
-          freetext.style.display = tags[0] === 'Sonstiges' ? '' : 'none';
-        }
+        const ft = _container?.querySelector('#f-position-freetext');
+        if (ft) ft.style.display = tags[0] === 'Sonstiges' ? '' : 'none';
+        markUnsaved();
       },
     }
   );
@@ -426,21 +417,25 @@ function mountComponents() {
   const spiderVisible = createToggleGroup(
     _container.querySelector('#spider-visible-mount'),
     {
-      values: ['Ja', 'Nein'],
-      selected: _data.spiderVisible === false ? 'Nein' : 'Ja',
-      onChange: (val) => { _data.spiderVisible = val === 'Ja'; },
+      tags: ['Ja', 'Nein'],
+      selected: _data.spiderVisible === true ? ['Ja'] : _data.spiderVisible === false ? ['Nein'] : [],
+      multiple: false,
+      onChange: (tags) => {
+        _data.spiderVisible = tags[0] === 'Ja' ? true : tags[0] === 'Nein' ? false : null;
+        markUnsaved();
+      },
     }
   );
   _components.push(spiderVisible);
 
   // Approach Reaction
-  const approach = createTagInput(
+  const approach = createToggleGroup(
     _container.querySelector('#approach-mount'),
     {
       tags: APPROACH_REACTION,
       selected: _data.approachReaction ? [_data.approachReaction] : [],
       multiple: false,
-      onChange: (tags) => { _data.approachReaction = tags[0] || ''; },
+      onChange: (tags) => { _data.approachReaction = tags[0] || ''; markUnsaved(); },
     }
   );
   _components.push(approach);
@@ -452,43 +447,43 @@ function mountComponents() {
       tags: INTERACTION_TAGS,
       selected: _data.interactionTags || [],
       multiple: true,
-      onChange: (tags) => { _data.interactionTags = tags; },
+      onChange: (tags) => { _data.interactionTags = tags; markUnsaved(); },
     }
   );
   _components.push(interactionTags);
 
-  // Web Type (single-select)
-  const webType = createTagInput(
+  // Web Type
+  const webType = createToggleGroup(
     _container.querySelector('#web-type-mount'),
     {
       tags: WEB_TYPE,
       selected: _data.webType ? [_data.webType] : [],
       multiple: false,
-      onChange: (tags) => { _data.webType = tags[0] || ''; },
+      onChange: (tags) => { _data.webType = tags[0] || ''; markUnsaved(); },
     }
   );
   _components.push(webType);
 
-  // Web Condition (single-select)
-  const webCondition = createTagInput(
+  // Web Condition
+  const webCondition = createToggleGroup(
     _container.querySelector('#web-condition-mount'),
     {
       tags: WEB_CONDITION,
       selected: _data.webCondition ? [_data.webCondition] : [],
       multiple: false,
-      onChange: (tags) => { _data.webCondition = tags[0] || ''; },
+      onChange: (tags) => { _data.webCondition = tags[0] || ''; markUnsaved(); },
     }
   );
   _components.push(webCondition);
 
-  // Cocoon Condition (single-select)
-  const cocoonCondition = createTagInput(
+  // Cocoon Condition
+  const cocoonCondition = createToggleGroup(
     _container.querySelector('#cocoon-condition-mount'),
     {
       tags: COCOON_CONDITION,
       selected: _data.cocoonCondition ? [_data.cocoonCondition] : [],
       multiple: false,
-      onChange: (tags) => { _data.cocoonCondition = tags[0] || ''; },
+      onChange: (tags) => { _data.cocoonCondition = tags[0] || ''; markUnsaved(); },
     }
   );
   _components.push(cocoonCondition);
@@ -500,7 +495,7 @@ function mountComponents() {
       groups: HABITAT_GROUPS,
       selected: _data.habitatTags || [],
       multiple: true,
-      onChange: (tags) => { _data.habitatTags = tags; },
+      onChange: (tags) => { _data.habitatTags = tags; markUnsaved(); },
     }
   );
   _components.push(habitatTags);
@@ -512,7 +507,7 @@ function mountComponents() {
       groups: WEATHER_GROUPS,
       selected: _data.weatherTags || [],
       multiple: true,
-      onChange: (tags) => { _data.weatherTags = tags; },
+      onChange: (tags) => { _data.weatherTags = tags; markUnsaved(); },
     }
   );
   _components.push(weatherTags);
@@ -526,7 +521,7 @@ function mountComponents() {
       multiple: true,
       allowFreetext: true,
       freetextPlaceholder: 'Eigenen Tag...',
-      onChange: (tags) => { _data.tags = tags; },
+      onChange: (tags) => { _data.tags = tags; markUnsaved(); },
     }
   );
   _components.push(quickTags);
@@ -625,6 +620,34 @@ function setupGPS() {
   }
 
   gpsBtn?.addEventListener('click', requestGPS);
+
+  // Manuelle Koordinaten-Eingabe
+  coordsInput?.addEventListener('change', () => {
+    const raw = coordsInput.value.trim();
+    if (!raw) {
+      _data.lat = null;
+      _data.lng = null;
+      updateGPSStatus('none', 'Keine Position');
+      markUnsaved();
+      return;
+    }
+
+    const match = raw.match(/^\s*(-?\d+[.,]\d+)\s*[,;\s]\s*(-?\d+[.,]\d+)\s*$/);
+    if (match) {
+      const lat = parseFloat(match[1].replace(',', '.'));
+      const lng = parseFloat(match[2].replace(',', '.'));
+      if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+        _data.lat = lat;
+        _data.lng = lng;
+        coordsInput.value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        updateGPSStatus('good', 'Manuell gesetzt');
+        markUnsaved();
+        return;
+      }
+    }
+
+    updateGPSStatus('none', 'Ungültiges Format – z.B. 52.4831, 13.3947');
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -680,7 +703,7 @@ async function showNoGpsHint() {
   if (dismissed?.value) return;
 
   const hintEl = _container?.querySelector('#exif-gps-hint');
-  if (!hintEl || hintEl.innerHTML.trim()) return; // Nicht überschreiben wenn GPS-Hint aktiv
+  if (!hintEl || hintEl.innerHTML.trim()) return;
 
   hintEl.innerHTML = `
     <div class="exif-gps-bar exif-gps-bar--info">
@@ -742,13 +765,12 @@ function setupFormSubmit() {
         id = await db.observations.add({ ..._data });
       }
 
-      // Process pending photos (neue Beobachtung: Fotos haben noch keine observationId)
+      // Process pending photos
       if (_photoUpload?.hasPendingPhotos()) {
         try {
           await _photoUpload.processPendingPhotos(id);
         } catch (err) {
           console.error('[Form] Photo processing error:', err);
-          // Don't block save – photos can be added later
         }
       }
 
