@@ -203,9 +203,20 @@ async function init(container, params) {
     });
   });
 
-  // ── Photo fullscreen on tap ──
+  // ── Photo fullscreen on tap (loads full-res blob from DB) ──
   container.querySelectorAll('.detail-photo').forEach(img => {
-    img.addEventListener('click', () => showFullscreenPhoto(img.src));
+    img.addEventListener('click', async () => {
+      const photoId = parseInt(img.closest('[data-photo-id]')?.dataset.photoId);
+      if (photoId) {
+        const photo = await db.photos.get(photoId);
+        if (photo?.blob) {
+          const fullUrl = URL.createObjectURL(photo.blob);
+          showFullscreenPhoto(fullUrl, true);
+          return;
+        }
+      }
+      showFullscreenPhoto(img.src);
+    });
   });
 
   // ── Delete observation ──
@@ -223,7 +234,7 @@ async function init(container, params) {
 // Fullscreen Photo Viewer
 // ═══════════════════════════════════════════════════════════════════
 
-function showFullscreenPhoto(src) {
+function showFullscreenPhoto(src, revokeOnClose = false) {
   const overlay = document.createElement('div');
   overlay.className = 'photo-fullscreen';
   overlay.innerHTML = `
@@ -232,6 +243,7 @@ function showFullscreenPhoto(src) {
   `;
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay || e.target.classList.contains('photo-fullscreen-close')) {
+      if (revokeOnClose) URL.revokeObjectURL(src);
       overlay.remove();
     }
   });
