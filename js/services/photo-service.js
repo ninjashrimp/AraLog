@@ -10,8 +10,8 @@ import db from '../db.js';
 // ═══════════════════════════════════════════════════════════════════
 
 const CONFIG = {
-  maxWidth: 2000,
-  maxHeight: 2000,
+  maxWidth: 3200,
+  maxHeight: 3200,
   quality: 0.85,
   mimeType: 'image/jpeg',
   thumbSize: 200,
