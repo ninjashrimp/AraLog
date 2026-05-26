@@ -9,11 +9,11 @@ let _container = null;
 let _thumbUrls = [];
 let _allObservations = [];
 let _thumbMap = new Map();
-let _activeFilters = { year: null, species: null, confidence: null, evidenceType: null, arages: false };
+let _activeFilters = { year: null, species: null, confidence: null, evidenceType: null, arages: false, obsorg: false };
 
 async function init(container, params) {
   _container = container;
-  _activeFilters = { year: null, species: null, confidence: null, evidenceType: null, arages: false };
+  _activeFilters = { year: null, species: null, confidence: null, evidenceType: null, arages: false, obsorg: false };
 
   _allObservations = await db.observations
     .orderBy('date')
@@ -45,8 +45,15 @@ async function init(container, params) {
         ${renderFilterGroup('Art', 'species', filterData.species)}
         ${renderFilterGroup('Sicherheit', 'confidence', filterData.confidence)}
         ${renderFilterGroup('Fundtyp', 'evidenceType', filterData.evidenceTypes)}
-        ${filterData.hasArages ? renderToggleFilter('AraGes', 'arages') : ''}
-        ${filterData.hasObsOrg ? renderToggleFilter('Obs.org', 'obsorg') : ''}
+        ${filterData.hasArages || filterData.hasObsOrg ? `
+          <div class="filter-group">
+            <span class="filter-group-label">Gemeldet</span>
+            <div class="filter-chips">
+              ${filterData.hasArages ? `<button type="button" class="filter-chip" data-key="arages" data-value="true">AraGes</button>` : ''}
+              ${filterData.hasObsOrg ? `<button type="button" class="filter-chip" data-key="obsorg" data-value="true">Obs.org</button>` : ''}
+            </div>
+          </div>
+        ` : ''}
       </div>
 
       <div id="filter-status" class="filter-status"></div>
@@ -101,17 +108,6 @@ function renderFilterGroup(label, key, values) {
       <span class="filter-group-label">${label}</span>
       <div class="filter-chips">
         ${values.map(v => `<button type="button" class="filter-chip" data-key="${key}" data-value="${escapeAttr(v)}">${escapeHtml(v)}</button>`).join('')}
-      </div>
-    </div>
-  `;
-}
-
-function renderToggleFilter(label, key) {
-  return `
-    <div class="filter-group">
-      <span class="filter-group-label">${label}</span>
-      <div class="filter-chips">
-        <button type="button" class="filter-chip" data-key="${key}" data-value="true">Gemeldet</button>
       </div>
     </div>
   `;
@@ -180,7 +176,6 @@ async function applyFilters() {
     filtered = filtered.filter(obs => (obs.tags || []).some(t => t.toLowerCase().includes('observation.org')));
   }
 
-  // Update count
   const activeCount = Object.values(_activeFilters).filter(v => v).length;
   const isFiltered = activeCount > 0 || query;
 
