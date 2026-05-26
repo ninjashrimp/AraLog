@@ -88,7 +88,7 @@ async function init(container) {
       ${stats.familyCounts.length > 0 ? `
         <div class="stats-section">
           <h3>Familien</h3>
-          ${renderHorizontalBars(stats.familyCounts.slice(0, 10), stats.totalObs)}
+          ${renderHorizontalBars(stats.familyCounts, stats.totalObs)}
         </div>
       ` : ''}
 
@@ -159,7 +159,7 @@ function computeStats(observations) {
   // Sort and format
   const topSpecies = [...speciesCount.entries()]
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
+    
     .map(([label, count]) => ({ label, count }));
 
   const yearCounts = [...yearCount.entries()]
