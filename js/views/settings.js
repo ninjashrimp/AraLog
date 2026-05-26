@@ -1,6 +1,6 @@
 /* ==========================================================================
    AraLog – Settings View
-   Export, Import, Storage info, App settings, Maintenance tools
+   Export, Import, Storage info, Maintenance tools
    ========================================================================== */
 
 import db, { getCounts, getStorageEstimate } from '../db.js';
@@ -18,6 +18,7 @@ async function init(container, params) {
   container.innerHTML = `
     <div class="view-container">
       <h2>Einstellungen</h2>
+
       <a href="#species" class="btn btn-secondary btn-block" style="margin-bottom:var(--space-lg);">Artenliste (Katalog)</a>
 
       <!-- Storage -->
@@ -67,6 +68,7 @@ async function init(container, params) {
             </svg>
             Foto-Export (ZIP)
           </button>
+          <div id="export-progress"></div>
         </div>
       </div>
 
@@ -103,6 +105,7 @@ async function init(container, params) {
   `;
 
   container.querySelector('#btn-export-json')?.addEventListener('click', exportJSON);
+  container.querySelector('#btn-export-photos')?.addEventListener('click', exportPhotos);
   container.querySelector('#btn-geocode-all')?.addEventListener('click', () => geocodeAll(container, params));
 
   container.querySelector('#btn-delete-all')?.addEventListener('click', async () => {
@@ -125,65 +128,40 @@ async function init(container, params) {
 // ═══════════════════════════════════════════════════════════════════
 
 async function geocodeAll(container, params) {
-  const btn = _container?.querySelector('#btn-geocode-all');
   const progressEl = _container?.querySelector('#geocode-progress');
+  const btn = _container?.querySelector('#btn-geocode-all');
   if (!progressEl) return;
 
-  const observations = await db.observations
-    .filter(o => o.lat && o.lng && !o.locationName)
-    .toArray();
-
-  if (!observations.length) {
-    window.AraLog?.showToast('Alle Einträge haben bereits Ortsnamen', 'success');
-    return;
-  }
-
+  const observations = await db.observations.filter(o => o.lat && o.lng && !o.locationName).toArray();
+  if (!observations.length) { window.AraLog?.showToast('Alle Einträge haben bereits Ortsnamen', 'success'); return; }
   if (btn) btn.disabled = true;
 
-  let done = 0;
-  let errors = 0;
-
+  let done = 0, errors = 0;
   for (const obs of observations) {
     done++;
     progressEl.innerHTML = `
-      <div class="geocode-progress-bar">
-        <div class="geocode-progress-fill" style="width: ${(done / observations.length) * 100}%"></div>
-      </div>
+      <div class="geocode-progress-bar"><div class="geocode-progress-fill" style="width: ${(done / observations.length) * 100}%"></div></div>
       <div class="geocode-progress-text">${done} / ${observations.length}</div>
     `;
-
     try {
       const name = await reverseGeocode(obs.lat, obs.lng);
-      if (name) {
-        await db.observations.update(obs.id, { locationName: name });
-      } else {
-        errors++;
-      }
-    } catch (err) {
-      console.warn('[Geocode]', obs.id, err);
-      errors++;
-    }
+      if (name) await db.observations.update(obs.id, { locationName: name });
+      else errors++;
+    } catch (err) { console.warn('[Geocode]', obs.id, err); errors++; }
   }
 
-  const msg = errors
-    ? `${done - errors} von ${done} Ortsnamen aufgelöst (${errors} Fehler)`
-    : `${done} Ortsnamen aufgelöst`;
-  window.AraLog?.showToast(msg, errors ? 'info' : 'success');
-
-  // Refresh view
+  window.AraLog?.showToast(errors ? `${done - errors} von ${done} aufgelöst (${errors} Fehler)` : `${done} Ortsnamen aufgelöst`, errors ? 'info' : 'success');
   init(container, params);
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Export / Import
+// Export JSON
 // ═══════════════════════════════════════════════════════════════════
 
 async function exportJSON() {
   try {
     const [observations, customSpecies, locations] = await Promise.all([
-      db.observations.toArray(),
-      db.customSpecies.toArray(),
-      db.locations.toArray(),
+      db.observations.toArray(), db.customSpecies.toArray(), db.locations.toArray(),
     ]);
 
     const cleanObs = observations.map(obs => {
@@ -193,24 +171,90 @@ async function exportJSON() {
 
     const exportData = {
       meta: { app: 'AraLog', version: '1.0.0', exportDate: new Date().toISOString(), observationCount: observations.length },
-      observations: cleanObs,
-      customSpecies,
-      locations,
+      observations: cleanObs, customSpecies, locations,
     };
 
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `aralog-export-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(
+      new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' }),
+      `aralog-export-${new Date().toISOString().slice(0, 10)}.json`
+    );
     window.AraLog?.showToast('Export erfolgreich', 'success');
   } catch (err) {
     console.error('[Export]', err);
     window.AraLog?.showToast('Export fehlgeschlagen', 'error');
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Export Photos (ZIP)
+// ═══════════════════════════════════════════════════════════════════
+
+async function exportPhotos() {
+  const btn = _container?.querySelector('#btn-export-photos');
+  const progressEl = _container?.querySelector('#export-progress');
+  if (btn) btn.disabled = true;
+
+  try {
+    const JSZip = window.JSZip;
+    if (!JSZip) {
+      window.AraLog?.showToast('JSZip nicht verfügbar', 'error');
+      return;
+    }
+
+    const zip = new JSZip();
+    const observations = await db.observations.toArray();
+    const obsMap = new Map(observations.map(o => [o.id, o]));
+
+    const photos = await db.photos.toArray();
+    if (!photos.length) {
+      window.AraLog?.showToast('Keine Fotos vorhanden', 'info');
+      if (btn) btn.disabled = false;
+      return;
+    }
+
+    let done = 0;
+    for (const photo of photos) {
+      done++;
+      if (progressEl) {
+        progressEl.innerHTML = `
+          <div class="geocode-progress-bar"><div class="geocode-progress-fill" style="width: ${(done / photos.length) * 100}%"></div></div>
+          <div class="geocode-progress-text">Foto ${done} / ${photos.length}</div>
+        `;
+      }
+
+      if (!photo.blob) continue;
+
+      // Build meaningful filename: Art_Datum_ID.jpg
+      const obs = obsMap.get(photo.observationId);
+      const species = sanitizeFilename(obs?.speciesName || 'Unbekannt');
+      const date = obs?.date || 'undatiert';
+      const suffix = photo.note ? `_${sanitizeFilename(photo.note)}` : '';
+      const filename = `${species}_${date}_${photo.id}${suffix}.jpg`;
+
+      zip.file(filename, photo.blob);
+    }
+
+    if (progressEl) progressEl.innerHTML = '<div class="geocode-progress-text">ZIP wird erstellt...</div>';
+
+    const zipBlob = await zip.generateAsync({
+      type: 'blob',
+      compression: 'STORE', // JPEGs sind schon komprimiert
+    });
+
+    downloadBlob(zipBlob, `aralog-fotos-${new Date().toISOString().slice(0, 10)}.zip`);
+    window.AraLog?.showToast(`${done} Fotos exportiert`, 'success');
+  } catch (err) {
+    console.error('[Photo Export]', err);
+    window.AraLog?.showToast('Foto-Export fehlgeschlagen: ' + err.message, 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+    if (progressEl) progressEl.innerHTML = '';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Import JSON
+// ═══════════════════════════════════════════════════════════════════
 
 async function handleImport(e) {
   const file = e.target.files?.[0];
@@ -220,22 +264,12 @@ async function handleImport(e) {
     const text = await file.text();
     const data = JSON.parse(text);
 
-    if (data.meta?.app !== 'AraLog') {
-      window.AraLog?.showToast('Keine gültige AraLog-Exportdatei', 'error');
-      return;
-    }
+    if (data.meta?.app !== 'AraLog') { window.AraLog?.showToast('Keine gültige AraLog-Exportdatei', 'error'); return; }
 
     const count = data.observations?.length || 0;
     if (confirm(`${count} Beobachtungen importieren?`)) {
-      for (const obs of (data.observations || [])) {
-        delete obs.id;
-        obs.photoIds = [];
-        await db.observations.add(obs);
-      }
-      for (const sp of (data.customSpecies || [])) {
-        delete sp.id;
-        await db.customSpecies.add(sp);
-      }
+      for (const obs of (data.observations || [])) { delete obs.id; obs.photoIds = []; await db.observations.add(obs); }
+      for (const sp of (data.customSpecies || [])) { delete sp.id; await db.customSpecies.add(sp); }
       window.AraLog?.showToast(`${count} Beobachtungen importiert`, 'success');
       init(_container, {});
     }
@@ -244,6 +278,23 @@ async function handleImport(e) {
     window.AraLog?.showToast('Import fehlgeschlagen – ungültiges Format', 'error');
   }
   e.target.value = '';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Helpers
+// ═══════════════════════════════════════════════════════════════════
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function sanitizeFilename(str) {
+  return (str || '').replace(/[^a-zA-Z0-9äöüÄÖÜß_-]/g, '_').replace(/_+/g, '_').substring(0, 40);
 }
 
 function formatBytes(bytes) {
