@@ -147,11 +147,11 @@ async function init(container, params) {
   if (uploadMount) {
     _photoUpload = createPhotoUpload({
       observationId: id,
-      existingPhotos: [], // Already shown in gallery above
+      existingPhotos: [],
       mode: 'detail',
       onPhotosChanged: () => {
         window.AraLog?.showToast('Foto hinzugefügt', 'success');
-        init(container, params); // Reload view
+        init(container, params);
       },
     });
     uploadMount.appendChild(_photoUpload.el);
@@ -203,19 +203,24 @@ async function init(container, params) {
     });
   });
 
-  // ── Photo fullscreen on tap (loads full-res blob from DB) ──
+  // ── Photo fullscreen on tap (loads full-res blob + caption) ──
   container.querySelectorAll('.detail-photo').forEach(img => {
     img.addEventListener('click', async () => {
-      const photoId = parseInt(img.closest('[data-photo-id]')?.dataset.photoId);
+      const wrapper = img.closest('[data-photo-id]');
+      const photoId = parseInt(wrapper?.dataset.photoId);
+      const noteEl = wrapper?.querySelector('.photo-note');
+      const noteText = noteEl?.textContent?.trim();
+      const caption = (noteText && noteText !== '+ Notiz') ? noteText : '';
+
       if (photoId) {
         const photo = await db.photos.get(photoId);
         if (photo?.blob) {
           const fullUrl = URL.createObjectURL(photo.blob);
-          showFullscreenPhoto(fullUrl, true);
+          showFullscreenPhoto(fullUrl, true, caption);
           return;
         }
       }
-      showFullscreenPhoto(img.src);
+      showFullscreenPhoto(img.src, false, caption);
     });
   });
 
@@ -231,14 +236,15 @@ async function init(container, params) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Fullscreen Photo Viewer
+// Fullscreen Photo Viewer (with optional caption)
 // ═══════════════════════════════════════════════════════════════════
 
-function showFullscreenPhoto(src, revokeOnClose = false) {
+function showFullscreenPhoto(src, revokeOnClose = false, caption = '') {
   const overlay = document.createElement('div');
   overlay.className = 'photo-fullscreen';
   overlay.innerHTML = `
     <img src="${src}" alt="Vollbild">
+    ${caption ? `<div class="photo-fullscreen-caption">${escapeHtml(caption)}</div>` : ''}
     <button class="photo-fullscreen-close" aria-label="Schließen">×</button>
   `;
   overlay.addEventListener('click', (e) => {

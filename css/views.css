@@ -661,3 +661,31 @@
   padding: var(--space-xs) var(--space-sm);
   -webkit-tap-highlight-color: transparent;
 }
+
+/* ── List Header Count ── */
+.list-header {
+  display: flex;
+  align-items: center;
+  padding: var(--space-sm) 0;
+}
+
+.list-count {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Fullscreen Photo Caption ── */
+.photo-fullscreen-caption {
+  position: absolute;
+  bottom: var(--space-xl);
+  left: var(--space-lg);
+  right: var(--space-lg);
+  text-align: center;
+  color: rgba(255,255,255,0.85);
+  font-size: var(--text-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(0,0,0,0.5);
+  border-radius: var(--radius-md);
+  pointer-events: none;
+}

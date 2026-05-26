@@ -162,7 +162,7 @@ export const QUICK_TAGS = [
   'Bestimmung offen',
   'Bestimmt durch Experten',
   'Meldeplattform AraGes',
-  'Meldeplattform iNaturalist',
+  'Meldeplattform iNaturalist', 'Meldeplattform Observation.org',
   'Verwechslungsgefahr',
   'Bissfrage',
   'Netztyp unbekannt',

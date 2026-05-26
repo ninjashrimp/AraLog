@@ -1,6 +1,6 @@
 /* ==========================================================================
    AraLog – Observation List View
-   Main list with search + combinable filter chips
+   Main list with search + combinable filter chips + entry count
    ========================================================================== */
 
 import db from '../db.js';
@@ -22,11 +22,14 @@ async function init(container, params) {
 
   _thumbMap = await loadThumbnails(_allObservations);
 
-  // Extract filter options from data
   const filterData = extractFilterOptions(_allObservations);
 
   container.innerHTML = `
     <div class="view-container">
+      <div class="list-header">
+        <span class="list-count" id="list-count">${_allObservations.length} Beobachtung${_allObservations.length !== 1 ? 'en' : ''}</span>
+      </div>
+
       <div class="list-toolbar">
         <div class="search-bar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -43,6 +46,7 @@ async function init(container, params) {
         ${renderFilterGroup('Sicherheit', 'confidence', filterData.confidence)}
         ${renderFilterGroup('Fundtyp', 'evidenceType', filterData.evidenceTypes)}
         ${filterData.hasArages ? renderToggleFilter('AraGes', 'arages') : ''}
+        ${filterData.hasObsOrg ? renderToggleFilter('Obs.org', 'obsorg') : ''}
       </div>
 
       <div id="filter-status" class="filter-status"></div>
@@ -53,7 +57,6 @@ async function init(container, params) {
     </div>
   `;
 
-  // Event handlers
   container.querySelector('#search-input')?.addEventListener('input', applyFilters);
   container.querySelector('#filter-bar')?.addEventListener('click', handleFilterClick);
 }
@@ -68,13 +71,17 @@ function extractFilterOptions(observations) {
   const confidence = new Set();
   const evidenceTypes = new Set();
   let hasArages = false;
+  let hasObsOrg = false;
 
   for (const obs of observations) {
     if (obs.date) years.add(obs.date.substring(0, 4));
     if (obs.speciesName) species.add(obs.speciesName);
     if (obs.confidence) confidence.add(obs.confidence);
     if (obs.evidenceType) evidenceTypes.add(obs.evidenceType);
-    if ((obs.tags || []).some(t => t.toLowerCase().includes('arages'))) hasArages = true;
+    for (const t of (obs.tags || [])) {
+      if (t.toLowerCase().includes('arages')) hasArages = true;
+      if (t.toLowerCase().includes('observation.org')) hasObsOrg = true;
+    }
   }
 
   return {
@@ -83,6 +90,7 @@ function extractFilterOptions(observations) {
     confidence: [...confidence],
     evidenceTypes: [...evidenceTypes].sort(),
     hasArages,
+    hasObsOrg,
   };
 }
 
@@ -116,16 +124,14 @@ function handleFilterClick(e) {
   const key = chip.dataset.key;
   const value = chip.dataset.value;
 
-  if (key === 'arages') {
-    _activeFilters.arages = !_activeFilters.arages;
-    chip.classList.toggle('selected', _activeFilters.arages);
+  if (key === 'arages' || key === 'obsorg') {
+    _activeFilters[key] = !_activeFilters[key];
+    chip.classList.toggle('selected', _activeFilters[key]);
   } else {
-    // Toggle: same value deselects
     if (_activeFilters[key] === value) {
       _activeFilters[key] = null;
       chip.classList.remove('selected');
     } else {
-      // Deselect siblings
       chip.closest('.filter-chips')?.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('selected'));
       _activeFilters[key] = value;
       chip.classList.add('selected');
@@ -139,11 +145,11 @@ async function applyFilters() {
   const query = _container?.querySelector('#search-input')?.value?.toLowerCase().trim() || '';
   const list = _container?.querySelector('#obs-list');
   const status = _container?.querySelector('#filter-status');
+  const countEl = _container?.querySelector('#list-count');
   if (!list) return;
 
   let filtered = _allObservations;
 
-  // Text search
   if (query) {
     filtered = filtered.filter(obs =>
       (obs.speciesName || '').toLowerCase().includes(query) ||
@@ -155,46 +161,44 @@ async function applyFilters() {
     );
   }
 
-  // Year filter
   if (_activeFilters.year) {
     filtered = filtered.filter(obs => obs.date?.startsWith(_activeFilters.year));
   }
-
-  // Species filter
   if (_activeFilters.species) {
     filtered = filtered.filter(obs => obs.speciesName === _activeFilters.species);
   }
-
-  // Confidence filter
   if (_activeFilters.confidence) {
     filtered = filtered.filter(obs => obs.confidence === _activeFilters.confidence);
   }
-
-  // Evidence type filter
   if (_activeFilters.evidenceType) {
     filtered = filtered.filter(obs => obs.evidenceType === _activeFilters.evidenceType);
   }
-
-  // AraGes filter
   if (_activeFilters.arages) {
     filtered = filtered.filter(obs => (obs.tags || []).some(t => t.toLowerCase().includes('arages')));
   }
+  if (_activeFilters.obsorg) {
+    filtered = filtered.filter(obs => (obs.tags || []).some(t => t.toLowerCase().includes('observation.org')));
+  }
 
-  // Update status
+  // Update count
   const activeCount = Object.values(_activeFilters).filter(v => v).length;
+  const isFiltered = activeCount > 0 || query;
+
+  if (countEl) {
+    countEl.textContent = isFiltered
+      ? `${filtered.length} von ${_allObservations.length} Beobachtungen`
+      : `${_allObservations.length} Beobachtung${_allObservations.length !== 1 ? 'en' : ''}`;
+  }
+
   if (status) {
-    if (activeCount > 0 || query) {
-      status.innerHTML = `
-        <span>${filtered.length} von ${_allObservations.length} Beobachtungen</span>
-        <button type="button" class="filter-clear" id="btn-clear-filters">Alle Filter zurücksetzen</button>
-      `;
+    if (isFiltered) {
+      status.innerHTML = `<button type="button" class="filter-clear" id="btn-clear-filters">Alle Filter zurücksetzen</button>`;
       status.querySelector('#btn-clear-filters')?.addEventListener('click', clearAllFilters);
     } else {
       status.innerHTML = '';
     }
   }
 
-  // Reload thumbnails for filtered results
   revokeThumbUrls();
   _thumbMap = await loadThumbnails(filtered);
 
@@ -204,13 +208,10 @@ async function applyFilters() {
 }
 
 function clearAllFilters() {
-  _activeFilters = { year: null, species: null, confidence: null, evidenceType: null, arages: false };
-
-  // Reset UI
+  _activeFilters = { year: null, species: null, confidence: null, evidenceType: null, arages: false, obsorg: false };
   _container?.querySelectorAll('.filter-chip.selected').forEach(c => c.classList.remove('selected'));
   const search = _container?.querySelector('#search-input');
   if (search) search.value = '';
-
   applyFilters();
 }
 
@@ -220,7 +221,6 @@ function clearAllFilters() {
 
 async function loadThumbnails(observations) {
   const map = new Map();
-
   const byPhotoId = [];
   const needsFallback = [];
 
@@ -236,7 +236,6 @@ async function loadThumbnails(observations) {
     const ids = byPhotoId.map(t => t.photoId);
     const photos = await db.photos.where('id').anyOf(ids).toArray();
     const photoMap = new Map(photos.map(p => [p.id, p]));
-
     for (const { obsId, photoId } of byPhotoId) {
       const photo = photoMap.get(photoId);
       if (photo?.thumbnail) {
