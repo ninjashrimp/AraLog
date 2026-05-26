@@ -4,7 +4,7 @@
    CACHE_VERSION bei jedem Update hochzählen!
    ========================================================================== */
 
-const CACHE_VERSION = 'aralog-v23';
+const CACHE_VERSION = 'aralog-v24';
 const MAP_CACHE = 'aralog-map-tiles-v1';
 const MAP_CACHE_LIMIT = 500; // max cached tiles
 
@@ -24,6 +24,7 @@ const PRECACHE_URLS = [
   './js/views/observation-list.js',
   './js/views/observation-form.js',
   './js/views/observation-detail.js',
+  './js/views/stats-view.js',
   './js/views/map-view.js',
   './js/views/species-list.js',
   './js/views/settings.js',

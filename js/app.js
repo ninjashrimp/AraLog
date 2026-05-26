@@ -32,6 +32,7 @@ async function init() {
     .on('view/:id', () => import('./views/observation-detail.js'))
     .on('map', () => import('./views/map-view.js'))
     .on('species', () => import('./views/species-list.js'))
+    .on('stats', () => import('./views/stats-view.js'))
     .on('settings', () => import('./views/settings.js'))
     .init(content);
 
