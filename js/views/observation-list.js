@@ -282,7 +282,7 @@ function renderListItem(obs, thumbMap) {
         <div class="obs-species">${obs.speciesName || 'Unbestimmt'}</div>
         <div class="obs-meta">
           <span>${dateFormatted}</span>
-          ${obs.locationName ? `<span>· ${obs.locationName}</span>` : ''}
+          ${obs.locationName ? `<span>· ${shortLocation(obs.locationName)}</span>` : ''}
         </div>
         <div class="obs-evidence">
           ${obs.evidenceType || ''}
@@ -324,6 +324,12 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str || '';
   return div.innerHTML;
+}
+
+function shortLocation(name) {
+  if (!name) return "";
+  const parts = name.split(", ");
+  return parts.length > 2 ? parts.slice(-2).join(", ") : name;
 }
 
 function escapeAttr(str) {
