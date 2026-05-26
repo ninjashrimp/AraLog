@@ -933,3 +933,25 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
+/* ── Species External Links ── */
+.species-links {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
+}
+
+.species-ext-link {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  text-decoration: none;
+  padding: 1px 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  transition: all var(--transition-fast);
+}
+
+.species-ext-link:hover {
+  color: var(--accent);
+  border-color: var(--accent-dim);
+}

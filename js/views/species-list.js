@@ -1,19 +1,18 @@
 /* ==========================================================================
    AraLog – Species List View
    Browse and search the species catalog, grouped by family
-   With observation counts per species
+   With observation counts, sort toggle, and external links
    ========================================================================== */
 
 import { speciesCatalog, searchSpecies, getFamilies } from '../data/species-catalog.js';
 import db from '../db.js';
 
 let _container = null;
-let _obsCounts = new Map();  // speciesName → count
+let _obsCounts = new Map();
 
 async function init(container, params) {
   _container = container;
 
-  // Load observation counts per species
   _obsCounts = new Map();
   const observations = await db.observations.toArray();
   for (const obs of observations) {
@@ -24,7 +23,6 @@ async function init(container, params) {
 
   const observedSpeciesCount = _obsCounts.size;
 
-  // Load custom species
   const customSpecies = await db.customSpecies.toArray();
   const allSpecies = [
     ...speciesCatalog,
@@ -59,20 +57,16 @@ async function init(container, params) {
 
   let currentSort = 'family';
 
-  // Sort toggle
   container.querySelector('.species-sort-bar')?.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-sort]');
     if (!btn) return;
-
     currentSort = btn.dataset.sort;
     container.querySelectorAll('.species-sort-bar .filter-chip').forEach(c => c.classList.remove('selected'));
     btn.classList.add('selected');
-
     const query = container.querySelector('#species-search')?.value?.toLowerCase().trim() || '';
     updateList(allSpecies, customSpecies, query, currentSort);
   });
 
-  // Search
   container.querySelector('#species-search')?.addEventListener('input', (e) => {
     const query = e.target.value.toLowerCase().trim();
     updateList(allSpecies, customSpecies, query, currentSort);
@@ -84,9 +78,7 @@ function updateList(allSpecies, customSpecies, query, sort) {
   if (!list) return;
 
   if (!query) {
-    list.innerHTML = sort === 'count'
-      ? renderByCount(allSpecies)
-      : renderGroupedList(allSpecies);
+    list.innerHTML = sort === 'count' ? renderByCount(allSpecies) : renderGroupedList(allSpecies);
     return;
   }
 
@@ -104,9 +96,7 @@ function updateList(allSpecies, customSpecies, query, sort) {
     return;
   }
 
-  list.innerHTML = sort === 'count'
-    ? renderByCount(results)
-    : renderFlatList(results, query);
+  list.innerHTML = sort === 'count' ? renderByCount(results) : renderFlatList(results, query);
 }
 
 function renderGroupedList(species) {
@@ -116,27 +106,26 @@ function renderGroupedList(species) {
     families.get(s.family).push(s);
   }
 
-  const sorted = [...families.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-
-  return sorted.map(([family, members]) => `
-    <div style="margin-bottom: var(--space-lg);">
-      <div style="
-        font-size: var(--text-xs);
-        font-weight: var(--weight-semibold);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--accent);
-        padding: var(--space-sm) 0;
-        border-bottom: 1px solid var(--border-subtle);
-        margin-bottom: var(--space-xs);
-      ">${family} (${members.length})</div>
-      ${members.map(s => renderSpecies(s)).join('')}
-    </div>
-  `).join('');
+  return [...families.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([family, members]) => `
+      <div style="margin-bottom: var(--space-lg);">
+        <div style="
+          font-size: var(--text-xs);
+          font-weight: var(--weight-semibold);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: var(--accent);
+          padding: var(--space-sm) 0;
+          border-bottom: 1px solid var(--border-subtle);
+          margin-bottom: var(--space-xs);
+        ">${family} (${members.length})</div>
+        ${members.map(s => renderSpecies(s)).join('')}
+      </div>
+    `).join('');
 }
 
 function renderByCount(species) {
-  // Only show species with observations, sorted by count desc
   const withCounts = species
     .map(s => ({ ...s, count: _obsCounts.get(s.germanName) || 0 }))
     .sort((a, b) => b.count - a.count);
@@ -145,11 +134,7 @@ function renderByCount(species) {
   const unobserved = withCounts.filter(s => s.count === 0);
 
   let html = '';
-
-  if (observed.length) {
-    html += observed.map(s => renderSpecies(s)).join('');
-  }
-
+  if (observed.length) html += observed.map(s => renderSpecies(s)).join('');
   if (unobserved.length) {
     html += `
       <div style="
@@ -164,7 +149,6 @@ function renderByCount(species) {
       ${unobserved.map(s => renderSpecies(s)).join('')}
     `;
   }
-
   return html;
 }
 
@@ -180,6 +164,7 @@ function renderSpecies(species, query = '') {
   const germanName = query ? highlightMatch(species.germanName, query) : escapeHtml(species.germanName);
   const sciName = query ? highlightMatch(species.scientificName, query) : escapeHtml(species.scientificName);
   const count = _obsCounts.get(species.germanName) || 0;
+  const links = buildSpeciesLinks(species);
 
   return `
     <div class="species-card">
@@ -192,8 +177,23 @@ function renderSpecies(species, query = '') {
         <span class="species-family">${escapeHtml(species.family)}</span>
         <span class="badge ${distColor} species-distribution">${species.distribution}</span>
       </div>
+      ${links ? `<div class="species-links">${links}</div>` : ''}
     </div>
   `;
+}
+
+function buildSpeciesLinks(species) {
+  const sciName = species.scientificName;
+  // Keine Links für Sammelprofile
+  if (!sciName || sciName.includes('div.') || sciName.includes('spp.') || sciName.includes('/')) return '';
+
+  const wikiName = sciName.replace(/ /g, '_');
+  const links = [];
+
+  links.push(`<a href="https://wiki.arages.de/index.php?title=${encodeURIComponent(wikiName)}" target="_blank" rel="noopener" class="species-ext-link">Wiki</a>`);
+  links.push(`<a href="https://de.wikipedia.org/wiki/${encodeURIComponent(wikiName)}" target="_blank" rel="noopener" class="species-ext-link">Wikipedia</a>`);
+
+  return links.join('');
 }
 
 function highlightMatch(text, query) {
