@@ -21,7 +21,7 @@ export const speciesCatalog = [
   { id: 'anyphaena_accentuata', scientificName: 'Anyphaena accentuata', germanName: 'Zartspinne', family: 'Anyphaenidae', distribution: 'häufig' },
 
   // ── Araneidae (Radnetzspinnen) ──
-  { id: 'araneus_diadematus', scientificName: 'Araneus diadematus', germanName: 'Gartenkreuzspinne', family: 'Araneidae', distribution: 'häufig' },
+  { id: 'araneus_diadematus', scientificName: 'Araneus diadematus', germanName: 'Gartenkreuzspinne', family: 'Araneidae', distribution: 'häufig', aragesId: 675 },
   { id: 'araneus_quadratus', scientificName: 'Araneus quadratus', germanName: 'Vierfleckkreuzspinne', family: 'Araneidae', distribution: 'häufig' },
   { id: 'araniella_cucurbitina', scientificName: 'Araniella cucurbitina', germanName: 'Kürbisspinne', family: 'Araneidae', distribution: 'häufig' },
   { id: 'argiope_bruennichi', scientificName: 'Argiope bruennichi', germanName: 'Wespenspinne', family: 'Araneidae', distribution: 'häufig' },
@@ -42,7 +42,7 @@ export const speciesCatalog = [
 
   // ── Cheiracanthiidae (Dornfingerspinnen) ──
   { id: 'cheiracanthium_mildei', scientificName: 'Cheiracanthium mildei', germanName: 'Milder Dornfinger', family: 'Cheiracanthiidae', distribution: 'mäßig verbreitet' },
-  { id: 'cheiracanthium_punctorium', scientificName: 'Cheiracanthium punctorium', germanName: 'Ammen-Dornfinger', family: 'Cheiracanthiidae', distribution: 'mäßig verbreitet' },
+  { id: 'cheiracanthium_punctorium', scientificName: 'Cheiracanthium punctorium', germanName: 'Ammen-Dornfinger', family: 'Cheiracanthiidae', distribution: 'mäßig verbreitet', aragesId: 946 },
 
   // ── Clubionidae (Sackspinnen) ──
   { id: 'clubiona_terrestris', scientificName: 'Clubiona terrestris', germanName: 'Boden-Sackspinne', family: 'Clubionidae', distribution: 'häufig' },
@@ -71,8 +71,8 @@ export const speciesCatalog = [
   // ── Lycosidae (Wolfsspinnen) ──
   { id: 'alopecosa_cuneata', scientificName: 'Alopecosa cuneata', germanName: 'Keilfleck-Wolfsspinne', family: 'Lycosidae', distribution: 'häufig' },
   { id: 'arctosa_leopardus', scientificName: 'Arctosa leopardus', germanName: 'Leopardspinne', family: 'Lycosidae', distribution: 'mäßig verbreitet' },
-  { id: 'pardosa_amentata', scientificName: 'Pardosa amentata', germanName: 'Gewöhnliche Wolfsspinne', family: 'Lycosidae', distribution: 'häufig' },
-  { id: 'pardosa_lugubris', scientificName: 'Pardosa lugubris', germanName: 'Trauerwolfsspinne', family: 'Lycosidae', distribution: 'häufig' },
+  { id: 'pardosa_amentata', scientificName: 'Pardosa amentata', germanName: 'Gewöhnliche Wolfsspinne', family: 'Lycosidae', distribution: 'häufig', aragesId: 766 },
+  { id: 'pardosa_lugubris', scientificName: 'Pardosa lugubris', germanName: 'Trauerwolfsspinne', family: 'Lycosidae', distribution: 'häufig', aragesId: 778 },
   { id: 'pardosa_palustris', scientificName: 'Pardosa palustris', germanName: 'Sumpfwolfsspinne', family: 'Lycosidae', distribution: 'häufig' },
   { id: 'pardosa_pullata', scientificName: 'Pardosa pullata', germanName: 'Schwarze Wolfsspinne', family: 'Lycosidae', distribution: 'häufig' },
   { id: 'pirata_hygrophilus', scientificName: 'Pirata hygrophilus', germanName: 'Feuchtigkeitsliebende Piratenspinne', family: 'Lycosidae', distribution: 'mäßig verbreitet' },
@@ -109,7 +109,7 @@ export const speciesCatalog = [
   { id: 'macaroeris_nidicolens', scientificName: 'Macaroeris nidicolens', germanName: 'Balkonspringspinne', family: 'Salticidae', distribution: 'mäßig verbreitet' },
   { id: 'marpissa_muscosa', scientificName: 'Marpissa muscosa', germanName: 'Rindenspringspinne', family: 'Salticidae', distribution: 'häufig' },
   { id: 'pseudeuophrys_lanigera', scientificName: 'Pseudeuophrys lanigera', germanName: 'Mauerspringspinne', family: 'Salticidae', distribution: 'häufig' },
-  { id: 'salticus_scenicus', scientificName: 'Salticus scenicus', germanName: 'Zebraspringspinne', family: 'Salticidae', distribution: 'häufig' },
+  { id: 'salticus_scenicus', scientificName: 'Salticus scenicus', germanName: 'Zebraspringspinne', family: 'Salticidae', distribution: 'häufig', aragesId: 1282 },
   { id: 'sitticus_pubescens', scientificName: 'Sitticus pubescens', germanName: 'Behaarte Springspinne', family: 'Salticidae', distribution: 'häufig' },
 
   // ── Scytodidae (Speispinnen) ──
@@ -157,14 +157,9 @@ export const speciesCatalog = [
 
 // ── Hilfsfunktionen ──
 
-/**
- * Durchsucht den Katalog nach einem Suchbegriff.
- * Matched auf germanName, scientificName und family (case-insensitive, Teilstring).
- */
 export function searchSpecies(query, maxResults = 10) {
   if (!query || query.length < 2) return [];
   const q = query.toLowerCase();
-
   return speciesCatalog
     .filter(s =>
       s.germanName.toLowerCase().includes(q) ||
@@ -174,16 +169,10 @@ export function searchSpecies(query, maxResults = 10) {
     .slice(0, maxResults);
 }
 
-/**
- * Findet eine Art anhand ihrer ID.
- */
 export function getSpeciesById(id) {
   return speciesCatalog.find(s => s.id === id) || null;
 }
 
-/**
- * Gibt alle Familien zurück (für gruppierte Anzeige).
- */
 export function getFamilies() {
   const families = new Set(speciesCatalog.map(s => s.family));
   return [...families].sort();

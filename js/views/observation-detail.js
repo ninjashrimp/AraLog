@@ -1,12 +1,13 @@
 /* ==========================================================================
    AraLog – Observation Detail View
    Single observation display with all fields, photo gallery,
-   and retroactive photo upload
+   retroactive photo upload, and external links (GBIF, AraGes)
    ========================================================================== */
 
 import db from '../db.js';
 import { getPhotosForObservation, deletePhoto, createPhotoUrl, revokeAllPhotoUrls } from '../services/photo-service.js';
 import { createPhotoUpload } from '../components/photo-upload.js';
+import { getSpeciesById } from '../data/species-catalog.js';
 
 let _container = null;
 let _photoUpload = null;
@@ -26,8 +27,8 @@ async function init(container, params) {
     return;
   }
 
-  // Load photos
   const photos = await getPhotosForObservation(id);
+  const externalLinks = buildExternalLinks(obs);
 
   container.innerHTML = `
     <div class="view-container">
@@ -36,6 +37,7 @@ async function init(container, params) {
           <div class="detail-species">${obs.speciesName || 'Unbestimmt'}</div>
           ${obs.scientificName ? `<div class="sci-name">${obs.scientificName}</div>` : ''}
           ${obs.confidence ? `<span class="badge badge-${obs.confidence}">${obs.confidence}</span>` : ''}
+          ${externalLinks ? `<div class="detail-ext-links">${externalLinks}</div>` : ''}
         </div>
         <div class="detail-actions">
           <a href="#edit/${id}" class="btn btn-secondary btn-sm">
@@ -52,7 +54,7 @@ async function init(container, params) {
         </div>
       </div>
 
-      <!-- ── Photo Gallery ── -->
+      <!-- Photo Gallery -->
       <div class="detail-section" id="photo-section">
         <h3>Fotos ${photos.length > 0 ? `(${photos.length})` : ''}</h3>
         ${photos.length > 0 ? `
@@ -68,8 +70,6 @@ async function init(container, params) {
             }).join('')}
           </div>
         ` : ''}
-
-        <!-- Nachträglicher Upload -->
         <div id="detail-photo-upload" class="detail-photo-add"></div>
       </div>
 
@@ -142,59 +142,42 @@ async function init(container, params) {
     </div>
   `;
 
-  // ── Mount retroactive photo upload ──
+  // Mount retroactive photo upload
   const uploadMount = container.querySelector('#detail-photo-upload');
   if (uploadMount) {
     _photoUpload = createPhotoUpload({
-      observationId: id,
-      existingPhotos: [],
-      mode: 'detail',
-      onPhotosChanged: () => {
-        window.AraLog?.showToast('Foto hinzugefügt', 'success');
-        init(container, params);
-      },
+      observationId: id, existingPhotos: [], mode: 'detail',
+      onPhotosChanged: () => { window.AraLog?.showToast('Foto hinzugefügt', 'success'); init(container, params); },
     });
     uploadMount.appendChild(_photoUpload.el);
   }
 
-  // ── Photo delete from gallery ──
+  // Photo delete
   container.querySelectorAll('.photo-delete-btn').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const photoId = parseInt(btn.dataset.photoId);
       if (!photoId || !confirm('Foto wirklich löschen?')) return;
-
-      try {
-        await deletePhoto(photoId, id);
-        window.AraLog?.showToast('Foto gelöscht', 'success');
-        init(container, params);
-      } catch (err) {
-        console.error('[Detail] Photo delete error:', err);
-        window.AraLog?.showToast('Fehler beim Löschen', 'error');
-      }
+      try { await deletePhoto(photoId, id); window.AraLog?.showToast('Foto gelöscht', 'success'); init(container, params); }
+      catch (err) { console.error('[Detail] Photo delete error:', err); window.AraLog?.showToast('Fehler beim Löschen', 'error'); }
     });
   });
 
-  // ── Photo note editing ──
+  // Photo note editing
   container.querySelectorAll('.photo-note').forEach(noteEl => {
     noteEl.addEventListener('click', (e) => {
       e.stopPropagation();
       const photoId = parseInt(noteEl.dataset.photoId);
       if (!photoId || noteEl.querySelector('input')) return;
-
       const currentText = noteEl.textContent === '+ Notiz' ? '' : noteEl.textContent.trim();
       noteEl.innerHTML = `<input type="text" class="photo-note-input" value="${currentText.replace(/"/g, '&quot;')}" placeholder="z.B. Dorsalansicht, Epigyne…" maxlength="120">`;
       const input = noteEl.querySelector('input');
       input.focus();
-
       async function save() {
         const val = input.value.trim();
-        try {
-          await db.photos.update(photoId, { note: val || null });
-        } catch (err) { console.error('[Note] Save:', err); }
+        try { await db.photos.update(photoId, { note: val || null }); } catch (err) { console.error('[Note]', err); }
         noteEl.innerHTML = val ? escapeHtml(val) : '<span class="photo-note-placeholder">+ Notiz</span>';
       }
-
       input.addEventListener('blur', save);
       input.addEventListener('keydown', (ev) => {
         if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
@@ -203,7 +186,7 @@ async function init(container, params) {
     });
   });
 
-  // ── Photo fullscreen on tap (loads full-res blob + caption) ──
+  // Photo fullscreen (full-res + caption)
   container.querySelectorAll('.detail-photo').forEach(img => {
     img.addEventListener('click', async () => {
       const wrapper = img.closest('[data-photo-id]');
@@ -211,20 +194,15 @@ async function init(container, params) {
       const noteEl = wrapper?.querySelector('.photo-note');
       const noteText = noteEl?.textContent?.trim();
       const caption = (noteText && noteText !== '+ Notiz') ? noteText : '';
-
       if (photoId) {
         const photo = await db.photos.get(photoId);
-        if (photo?.blob) {
-          const fullUrl = URL.createObjectURL(photo.blob);
-          showFullscreenPhoto(fullUrl, true, caption);
-          return;
-        }
+        if (photo?.blob) { showFullscreenPhoto(URL.createObjectURL(photo.blob), true, caption); return; }
       }
       showFullscreenPhoto(img.src, false, caption);
     });
   });
 
-  // ── Delete observation ──
+  // Delete observation
   container.querySelector('#btn-delete')?.addEventListener('click', async () => {
     if (confirm('Beobachtung wirklich löschen?')) {
       for (const p of photos) await db.photos.delete(p.id);
@@ -236,7 +214,30 @@ async function init(container, params) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Fullscreen Photo Viewer (with optional caption)
+// External Links (GBIF + AraGes Atlas)
+// ═══════════════════════════════════════════════════════════════════
+
+function buildExternalLinks(obs) {
+  const links = [];
+  const sciName = obs.scientificName;
+  const extIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+
+  // GBIF – works with any real scientific name
+  if (sciName && !sciName.includes('div.') && !sciName.includes('spp.')) {
+    links.push(`<a href="https://www.gbif.org/species/search?q=${encodeURIComponent(sciName)}" target="_blank" rel="noopener" class="ext-link">GBIF ${extIcon}</a>`);
+  }
+
+  // AraGes Atlas – only if aragesId is known
+  const catalogEntry = obs.speciesId ? getSpeciesById(obs.speciesId) : null;
+  if (catalogEntry?.aragesId) {
+    links.push(`<a href="https://atlas.arages.de/species/${catalogEntry.aragesId}" target="_blank" rel="noopener" class="ext-link">AraGes ${extIcon}</a>`);
+  }
+
+  return links.join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Fullscreen Photo Viewer
 // ═══════════════════════════════════════════════════════════════════
 
 function showFullscreenPhoto(src, revokeOnClose = false, caption = '') {
@@ -262,35 +263,20 @@ function showFullscreenPhoto(src, revokeOnClose = false, caption = '') {
 
 function field(label, value) {
   if (!value && value !== 0) return '';
-  return `
-    <div class="detail-field">
-      ${label ? `<span class="detail-field-label">${label}</span>` : ''}
-      <span class="detail-field-value">${value}</span>
-    </div>
-  `;
+  return `<div class="detail-field">${label ? `<span class="detail-field-label">${label}</span>` : ''}<span class="detail-field-value">${value}</span></div>`;
 }
 
 function formatDate(dateStr) {
   if (!dateStr) return '–';
-  try {
-    return new Date(dateStr + 'T00:00:00').toLocaleDateString('de-DE', {
-      weekday: 'short', day: '2-digit', month: 'long', year: 'numeric'
-    });
-  } catch { return dateStr; }
+  try { return new Date(dateStr + 'T00:00:00').toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: 'long', year: 'numeric' }); }
+  catch { return dateStr; }
 }
 
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str || '';
-  return div.innerHTML;
-}
+function escapeHtml(str) { const div = document.createElement('div'); div.textContent = str || ''; return div.innerHTML; }
 
 function destroy() {
   revokeAllPhotoUrls();
-  if (_photoUpload) {
-    _photoUpload.destroy();
-    _photoUpload = null;
-  }
+  if (_photoUpload) { _photoUpload.destroy(); _photoUpload = null; }
   _container = null;
 }
 
