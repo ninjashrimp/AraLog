@@ -1,9 +1,10 @@
 /* ==========================================================================
    AraLog – Settings View
-   Export, Import, Storage info, App settings
+   Export, Import, Storage info, App settings, Maintenance tools
    ========================================================================== */
 
 import db, { getCounts, getStorageEstimate } from '../db.js';
+import { reverseGeocode } from '../services/geocode-service.js';
 
 let _container = null;
 
@@ -12,6 +13,7 @@ async function init(container, params) {
 
   const counts = await getCounts();
   const storage = await getStorageEstimate();
+  const missingLocations = await db.observations.filter(o => o.lat && o.lng && !o.locationName).count();
 
   container.innerHTML = `
     <div class="view-container">
@@ -31,6 +33,20 @@ async function init(container, params) {
           <div class="storage-info">
             ${formatBytes(storage.usage)} von ${formatBytes(storage.quota)} belegt (${storage.usagePercent}%)
           </div>
+        </div>
+      </div>
+
+      <!-- Maintenance -->
+      <div class="settings-section">
+        <h2>Wartung</h2>
+        <div style="display: flex; flex-direction: column; gap: var(--space-md);">
+          <button class="btn btn-secondary btn-block" id="btn-geocode-all" ${missingLocations === 0 ? 'disabled' : ''}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+            </svg>
+            Ortsnamen auflösen (${missingLocations})
+          </button>
+          <div id="geocode-progress"></div>
         </div>
       </div>
 
@@ -85,10 +101,9 @@ async function init(container, params) {
     </div>
   `;
 
-  // Export JSON
   container.querySelector('#btn-export-json')?.addEventListener('click', exportJSON);
+  container.querySelector('#btn-geocode-all')?.addEventListener('click', () => geocodeAll(container, params));
 
-  // Delete all
   container.querySelector('#btn-delete-all')?.addEventListener('click', async () => {
     if (confirm('ALLE Beobachtungen und Fotos unwiderruflich löschen?')) {
       if (confirm('Wirklich sicher? Diese Aktion kann nicht rückgängig gemacht werden.')) {
@@ -96,14 +111,71 @@ async function init(container, params) {
         await db.photos.clear();
         await db.customSpecies.clear();
         window.AraLog?.showToast('Alle Daten gelöscht', 'success');
-        init(container, params); // Refresh view
+        init(container, params);
       }
     }
   });
 
-  // Import JSON
   container.querySelector('#import-json-input')?.addEventListener('change', handleImport);
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Bulk Reverse Geocoding
+// ═══════════════════════════════════════════════════════════════════
+
+async function geocodeAll(container, params) {
+  const btn = _container?.querySelector('#btn-geocode-all');
+  const progressEl = _container?.querySelector('#geocode-progress');
+  if (!progressEl) return;
+
+  const observations = await db.observations
+    .filter(o => o.lat && o.lng && !o.locationName)
+    .toArray();
+
+  if (!observations.length) {
+    window.AraLog?.showToast('Alle Einträge haben bereits Ortsnamen', 'success');
+    return;
+  }
+
+  if (btn) btn.disabled = true;
+
+  let done = 0;
+  let errors = 0;
+
+  for (const obs of observations) {
+    done++;
+    progressEl.innerHTML = `
+      <div class="geocode-progress-bar">
+        <div class="geocode-progress-fill" style="width: ${(done / observations.length) * 100}%"></div>
+      </div>
+      <div class="geocode-progress-text">${done} / ${observations.length}</div>
+    `;
+
+    try {
+      const name = await reverseGeocode(obs.lat, obs.lng);
+      if (name) {
+        await db.observations.update(obs.id, { locationName: name });
+      } else {
+        errors++;
+      }
+    } catch (err) {
+      console.warn('[Geocode]', obs.id, err);
+      errors++;
+    }
+  }
+
+  const msg = errors
+    ? `${done - errors} von ${done} Ortsnamen aufgelöst (${errors} Fehler)`
+    : `${done} Ortsnamen aufgelöst`;
+  window.AraLog?.showToast(msg, errors ? 'info' : 'success');
+
+  // Refresh view
+  init(container, params);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Export / Import
+// ═══════════════════════════════════════════════════════════════════
 
 async function exportJSON() {
   try {
@@ -113,19 +185,13 @@ async function exportJSON() {
       db.locations.toArray(),
     ]);
 
-    // Strip photoIds blob references (photos exported separately)
     const cleanObs = observations.map(obs => {
       const { photoIds, ...rest } = obs;
       return { ...rest, photoCount: (photoIds || []).length };
     });
 
     const exportData = {
-      meta: {
-        app: 'AraLog',
-        version: '1.0.0',
-        exportDate: new Date().toISOString(),
-        observationCount: observations.length,
-      },
+      meta: { app: 'AraLog', version: '1.0.0', exportDate: new Date().toISOString(), observationCount: observations.length },
       observations: cleanObs,
       customSpecies,
       locations,
@@ -138,7 +204,6 @@ async function exportJSON() {
     a.download = `aralog-export-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-
     window.AraLog?.showToast('Export erfolgreich', 'success');
   } catch (err) {
     console.error('[Export]', err);
@@ -162,25 +227,21 @@ async function handleImport(e) {
     const count = data.observations?.length || 0;
     if (confirm(`${count} Beobachtungen importieren?`)) {
       for (const obs of (data.observations || [])) {
-        delete obs.id; // Let Dexie assign new IDs
+        delete obs.id;
         obs.photoIds = [];
         await db.observations.add(obs);
       }
-
       for (const sp of (data.customSpecies || [])) {
         delete sp.id;
         await db.customSpecies.add(sp);
       }
-
       window.AraLog?.showToast(`${count} Beobachtungen importiert`, 'success');
-      init(_container, {}); // Refresh
+      init(_container, {});
     }
   } catch (err) {
     console.error('[Import]', err);
     window.AraLog?.showToast('Import fehlgeschlagen – ungültiges Format', 'error');
   }
-
-  // Reset file input
   e.target.value = '';
 }
 
@@ -192,8 +253,6 @@ function formatBytes(bytes) {
   return `${bytes.toFixed(1)} ${units[i]}`;
 }
 
-function destroy() {
-  _container = null;
-}
+function destroy() { _container = null; }
 
 export default { init, destroy };

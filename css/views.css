@@ -901,3 +901,27 @@
 .ext-link svg {
   flex-shrink: 0;
 }
+
+/* ── Geocode Progress ── */
+.geocode-progress-bar {
+  height: 6px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-top: var(--space-sm);
+}
+
+.geocode-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: var(--radius-full);
+  transition: width 0.3s ease;
+}
+
+.geocode-progress-text {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  text-align: center;
+  margin-top: var(--space-xs);
+  font-variant-numeric: tabular-nums;
+}
