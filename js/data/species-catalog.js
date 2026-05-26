@@ -10,7 +10,7 @@ export const speciesCatalog = [
   // ── Agelenidae (Trichterspinnen) ──
   { id: 'agelena_labyrinthica', scientificName: 'Agelena labyrinthica', germanName: 'Labyrinthspinne', family: 'Agelenidae', distribution: 'häufig' },
   { id: 'eratigena_atrica_komplex', scientificName: 'Eratigena atrica/duellica', germanName: 'Große Winkelspinnen (Komplex)', family: 'Agelenidae', distribution: 'häufig' },
-  { id: 'eratigena_ferruginea', scientificName: 'Eratigena ferruginea', germanName: 'Rostrote Winkelspinne', family: 'Agelenidae', distribution: 'häufig' },
+  { id: 'tegenaria_ferruginea', scientificName: 'Tegenaria ferruginea', germanName: 'Rostrote Winkelspinne', family: 'Agelenidae', distribution: 'häufig' },
   { id: 'tegenaria_domestica', scientificName: 'Tegenaria domestica', germanName: 'Hauswinkelspinne', family: 'Agelenidae', distribution: 'häufig' },
 
   // ── Amaurobiidae (Finsterspinnen) ──
