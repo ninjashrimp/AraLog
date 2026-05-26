@@ -18,6 +18,7 @@ async function init(container, params) {
   container.innerHTML = `
     <div class="view-container">
       <h2>Einstellungen</h2>
+      <a href="#species" class="btn btn-secondary btn-block" style="margin-bottom:var(--space-lg);">Artenliste (Katalog)</a>
 
       <!-- Storage -->
       <div class="settings-section">
