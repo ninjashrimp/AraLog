@@ -330,6 +330,7 @@ function mountComponents() {
         _data.speciesName = val.speciesName;
         _data.scientificName = val.scientificName;
         _data.speciesId = val.speciesId;
+        _data.family = val.family || '';
         markUnsaved();
       },
     }
@@ -752,6 +753,7 @@ function setupFormSubmit() {
       _data.speciesName = sv.speciesName || _data.speciesName;
       _data.scientificName = sv.scientificName || _data.scientificName;
       _data.speciesId = sv.speciesId ?? _data.speciesId;
+      _data.family = sv.family || _data.family;
     }
 
     try {

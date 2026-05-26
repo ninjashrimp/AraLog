@@ -13,7 +13,7 @@ import db from '../db.js';
  * @param {Object} options
  * @param {string} options.value - Initial species name
  * @param {string} options.speciesId - Initial species ID
- * @param {Function} options.onChange - Callback({speciesId, speciesName, scientificName, distribution})
+ * @param {Function} options.onChange - Callback({speciesId, speciesName, scientificName, family, distribution})
  * @returns {Object} - { destroy() }
  */
 export function createSpeciesPicker(container, options = {}) {
@@ -161,6 +161,7 @@ export function createSpeciesPicker(container, options = {}) {
       speciesId: species.id || null,
       speciesName: species.germanName,
       scientificName: species.scientificName,
+      family: species.family || '',
       distribution: species.distribution || '',
     });
   }
@@ -179,6 +180,7 @@ export function createSpeciesPicker(container, options = {}) {
       speciesId: null,
       speciesName: name,
       scientificName: '',
+      family: '',
       distribution: '',
     });
   }
@@ -241,6 +243,7 @@ export function createSpeciesPicker(container, options = {}) {
         speciesId: selectedSpecies?.id || null,
         speciesName: input.value.trim(),
         scientificName: selectedSpecies?.scientificName || '',
+        family: selectedSpecies?.family || '',
       };
     },
     setValue(name, id = null) {
