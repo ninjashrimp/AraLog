@@ -9,6 +9,7 @@ import { createSpeciesPicker } from '../components/species-picker.js';
 import { createTagInput, createToggleGroup } from '../components/tag-input.js';
 import { createPhotoUpload } from '../components/photo-upload.js';
 import { getPhotosForObservation } from '../services/photo-service.js';
+import { reverseGeocode } from '../services/geocode-service.js';
 import {
   CONFIDENCE, EVIDENCE_TYPE, LIFE_STAGE, SEX,
   POSITION, APPROACH_REACTION, BEHAVIOR_TAGS, INTERACTION_TAGS,
@@ -32,7 +33,6 @@ async function init(container, params) {
   _observationId = params?.id ? parseInt(params.id) : null;
   _components = [];
 
-  // Load or create data
   if (_isEditing && _observationId) {
     _data = await db.observations.get(_observationId);
     if (!_data) {
@@ -50,15 +50,12 @@ async function init(container, params) {
     _data = createObservationTemplate();
   }
 
-  // Load existing photos for edit mode
   _existingPhotos = [];
   if (_isEditing && _observationId) {
-    try {
-      _existingPhotos = await getPhotosForObservation(_observationId);
-    } catch (e) { console.warn('[Form] Photo load:', e); }
+    try { _existingPhotos = await getPhotosForObservation(_observationId); }
+    catch (e) { console.warn('[Form] Photo load:', e); }
   }
 
-  // Render form shell
   container.innerHTML = `
     <div class="view-container" data-unsaved="false">
       <form id="obs-form" novalidate>
@@ -97,6 +94,18 @@ async function init(container, params) {
             <div class="gps-status" id="gps-status">
               <span class="gps-dot none"></span>
               <span>${_data.lat ? 'Position gesetzt' : 'GPS wird gesucht...'}</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Ort</label>
+            <div style="display:flex; gap:var(--space-sm); align-items:center;">
+              <input type="text" class="form-input" id="f-location-name"
+                     value="${escapeHtml(_data.locationName || '')}"
+                     placeholder="Wird aus Koordinaten ermittelt...">
+              <div class="geocode-spinner" id="geocode-spinner" style="display:none;">
+                <div class="spinner-small"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -305,7 +314,6 @@ async function init(container, params) {
     </div>
   `;
 
-  // Mount interactive components
   mountComponents();
   setupCollapsibles();
   setupGPS();
@@ -313,217 +321,39 @@ async function init(container, params) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Component Mounting
+// Component Mounting (unchanged from user's version)
 // ═══════════════════════════════════════════════════════════════════
 
 function mountComponents() {
-  // Species Picker
   const speciesPicker = createSpeciesPicker(
     _container.querySelector('#species-picker-mount'),
     {
-      initialValue: {
-        speciesName: _data.speciesName || '',
-        scientificName: _data.scientificName || '',
-        speciesId: _data.speciesId || null,
-      },
-      onChange: (val) => {
-        _data.speciesName = val.speciesName;
-        _data.scientificName = val.scientificName;
-        _data.speciesId = val.speciesId;
-        _data.family = val.family || '';
-        markUnsaved();
-      },
+      initialValue: { speciesName: _data.speciesName || '', scientificName: _data.scientificName || '', speciesId: _data.speciesId || null },
+      onChange: (val) => { _data.speciesName = val.speciesName; _data.scientificName = val.scientificName; _data.speciesId = val.speciesId; _data.family = val.family || ''; markUnsaved(); },
     }
   );
   _components.push(speciesPicker);
 
-  // Confidence
-  const confidence = createToggleGroup(
-    _container.querySelector('#confidence-mount'),
-    {
-      values: CONFIDENCE,
-      selected: _data.confidence || '',
-      multiple: false,
-      onChange: (val) => { _data.confidence = val || ''; markUnsaved(); },
-    }
-  );
-  _components.push(confidence);
+  _components.push(createToggleGroup(_container.querySelector('#confidence-mount'), { values: CONFIDENCE, selected: _data.confidence || '', onChange: (val) => { _data.confidence = val || ''; markUnsaved(); } }));
+  _components.push(createToggleGroup(_container.querySelector('#evidence-type-mount'), { values: EVIDENCE_TYPE, selected: _data.evidenceType || '', onChange: (val) => { _data.evidenceType = val || ''; markUnsaved(); } }));
+  _components.push(createToggleGroup(_container.querySelector('#life-stage-mount'), { values: LIFE_STAGE, selected: _data.lifeStage || '', onChange: (val) => { _data.lifeStage = val || ''; markUnsaved(); } }));
+  _components.push(createToggleGroup(_container.querySelector('#sex-mount'), { values: SEX, selected: _data.sex || '', onChange: (val) => { _data.sex = val || ''; markUnsaved(); } }));
 
-  // Evidence Type
-  const evidenceType = createToggleGroup(
-    _container.querySelector('#evidence-type-mount'),
-    {
-      values: EVIDENCE_TYPE,
-      selected: _data.evidenceType || '',
-      multiple: false,
-      onChange: (val) => { _data.evidenceType = val || ''; markUnsaved(); },
-    }
-  );
-  _components.push(evidenceType);
+  _components.push(createTagInput(_container.querySelector('#behavior-tags-mount'), { tags: BEHAVIOR_TAGS, selected: _data.behaviorTags || [], multiple: true, onChange: (tags) => { _data.behaviorTags = tags; markUnsaved(); } }));
 
-  // Life Stage
-  const lifeStage = createToggleGroup(
-    _container.querySelector('#life-stage-mount'),
-    {
-      values: LIFE_STAGE,
-      selected: _data.lifeStage || '',
-      multiple: false,
-      onChange: (val) => { _data.lifeStage = val || ''; markUnsaved(); },
-    }
-  );
-  _components.push(lifeStage);
+  _components.push(createToggleGroup(_container.querySelector('#position-mount'), { values: POSITION, selected: _data.position || '', onChange: (val) => { _data.position = val || ''; const ft = _container?.querySelector('#f-position-freetext'); if (ft) ft.style.display = val === 'Sonstiges' ? '' : 'none'; markUnsaved(); } }));
+  _components.push(createToggleGroup(_container.querySelector('#spider-visible-mount'), { values: ['Ja', 'Nein'], selected: _data.spiderVisible === true ? 'Ja' : _data.spiderVisible === false ? 'Nein' : '', onChange: (val) => { _data.spiderVisible = val === 'Ja' ? true : val === 'Nein' ? false : null; markUnsaved(); } }));
+  _components.push(createToggleGroup(_container.querySelector('#approach-mount'), { values: APPROACH_REACTION, selected: _data.approachReaction || '', onChange: (val) => { _data.approachReaction = val || ''; markUnsaved(); } }));
 
-  // Sex
-  const sex = createToggleGroup(
-    _container.querySelector('#sex-mount'),
-    {
-      values: SEX,
-      selected: _data.sex || '',
-      multiple: false,
-      onChange: (val) => { _data.sex = val || ''; markUnsaved(); },
-    }
-  );
-  _components.push(sex);
+  _components.push(createTagInput(_container.querySelector('#interaction-tags-mount'), { tags: INTERACTION_TAGS, selected: _data.interactionTags || [], multiple: true, onChange: (tags) => { _data.interactionTags = tags; markUnsaved(); } }));
 
-  // Behavior Tags
-  const behaviorTags = createTagInput(
-    _container.querySelector('#behavior-tags-mount'),
-    {
-      tags: BEHAVIOR_TAGS,
-      selected: _data.behaviorTags || [],
-      multiple: true,
-      onChange: (tags) => { _data.behaviorTags = tags; markUnsaved(); },
-    }
-  );
-  _components.push(behaviorTags);
+  _components.push(createToggleGroup(_container.querySelector('#web-type-mount'), { values: WEB_TYPE, selected: _data.webType || '', onChange: (val) => { _data.webType = val || ''; markUnsaved(); } }));
+  _components.push(createToggleGroup(_container.querySelector('#web-condition-mount'), { values: WEB_CONDITION, selected: _data.webCondition || '', onChange: (val) => { _data.webCondition = val || ''; markUnsaved(); } }));
+  _components.push(createToggleGroup(_container.querySelector('#cocoon-condition-mount'), { values: COCOON_CONDITION, selected: _data.cocoonCondition || '', onChange: (val) => { _data.cocoonCondition = val || ''; markUnsaved(); } }));
 
-  // Position
-  const position = createToggleGroup(
-    _container.querySelector('#position-mount'),
-    {
-      values: POSITION,
-      selected: _data.position || '',
-      onChange: (val) => {
-        _data.position = val || '';
-        const ft = _container?.querySelector('#f-position-freetext');
-        if (ft) ft.style.display = val === 'Sonstiges' ? '' : 'none';
-        markUnsaved();
-      },
-    }
-  );
-  _components.push(position);
-
-  // Spider Visible
-  const spiderVisible = createToggleGroup(
-    _container.querySelector('#spider-visible-mount'),
-    {
-      values: ['Ja', 'Nein'],
-      selected: _data.spiderVisible === true ? 'Ja' : _data.spiderVisible === false ? 'Nein' : '',
-      onChange: (val) => {
-        _data.spiderVisible = val === 'Ja' ? true : val === 'Nein' ? false : null;
-        markUnsaved();
-      },
-    }
-  );
-  _components.push(spiderVisible);
-
-  // Approach Reaction
-  const approach = createToggleGroup(
-    _container.querySelector('#approach-mount'),
-    {
-      values: APPROACH_REACTION,
-      selected: _data.approachReaction || '',
-      multiple: false,
-      onChange: (val) => { _data.approachReaction = val || ''; markUnsaved(); },
-    }
-  );
-  _components.push(approach);
-
-  // Interaction Tags
-  const interactionTags = createTagInput(
-    _container.querySelector('#interaction-tags-mount'),
-    {
-      tags: INTERACTION_TAGS,
-      selected: _data.interactionTags || [],
-      multiple: true,
-      onChange: (tags) => { _data.interactionTags = tags; markUnsaved(); },
-    }
-  );
-  _components.push(interactionTags);
-
-  // Web Type
-  const webType = createToggleGroup(
-    _container.querySelector('#web-type-mount'),
-    {
-      values: WEB_TYPE,
-      selected: _data.webType || '',
-      multiple: false,
-      onChange: (val) => { _data.webType = val || ''; markUnsaved(); },
-    }
-  );
-  _components.push(webType);
-
-  // Web Condition
-  const webCondition = createToggleGroup(
-    _container.querySelector('#web-condition-mount'),
-    {
-      values: WEB_CONDITION,
-      selected: _data.webCondition || '',
-      multiple: false,
-      onChange: (val) => { _data.webCondition = val || ''; markUnsaved(); },
-    }
-  );
-  _components.push(webCondition);
-
-  // Cocoon Condition
-  const cocoonCondition = createToggleGroup(
-    _container.querySelector('#cocoon-condition-mount'),
-    {
-      values: COCOON_CONDITION,
-      selected: _data.cocoonCondition || '',
-      multiple: false,
-      onChange: (val) => { _data.cocoonCondition = val || ''; markUnsaved(); },
-    }
-  );
-  _components.push(cocoonCondition);
-
-  // Habitat Tags (grouped, multi-select)
-  const habitatTags = createTagInput(
-    _container.querySelector('#habitat-tags-mount'),
-    {
-      groups: HABITAT_GROUPS,
-      selected: _data.habitatTags || [],
-      multiple: true,
-      onChange: (tags) => { _data.habitatTags = tags; markUnsaved(); },
-    }
-  );
-  _components.push(habitatTags);
-
-  // Weather Tags (grouped, multi-select)
-  const weatherTags = createTagInput(
-    _container.querySelector('#weather-tags-mount'),
-    {
-      groups: WEATHER_GROUPS,
-      selected: _data.weatherTags || [],
-      multiple: true,
-      onChange: (tags) => { _data.weatherTags = tags; markUnsaved(); },
-    }
-  );
-  _components.push(weatherTags);
-
-  // Quick Tags (multi-select + freetext)
-  const quickTags = createTagInput(
-    _container.querySelector('#quick-tags-mount'),
-    {
-      tags: QUICK_TAGS,
-      selected: _data.tags || [],
-      multiple: true,
-      allowFreetext: true,
-      freetextPlaceholder: 'Eigenen Tag...',
-      onChange: (tags) => { _data.tags = tags; markUnsaved(); },
-    }
-  );
-  _components.push(quickTags);
+  _components.push(createTagInput(_container.querySelector('#habitat-tags-mount'), { groups: HABITAT_GROUPS, selected: _data.habitatTags || [], multiple: true, onChange: (tags) => { _data.habitatTags = tags; markUnsaved(); } }));
+  _components.push(createTagInput(_container.querySelector('#weather-tags-mount'), { groups: WEATHER_GROUPS, selected: _data.weatherTags || [], multiple: true, onChange: (tags) => { _data.weatherTags = tags; markUnsaved(); } }));
+  _components.push(createTagInput(_container.querySelector('#quick-tags-mount'), { tags: QUICK_TAGS, selected: _data.tags || [], multiple: true, allowFreetext: true, freetextPlaceholder: 'Eigenen Tag...', onChange: (tags) => { _data.tags = tags; markUnsaved(); } }));
 
   // Photo Upload
   const photoMount = _container.querySelector('#photo-upload-mount');
@@ -532,24 +362,13 @@ function mountComponents() {
       observationId: _isEditing ? _observationId : null,
       existingPhotos: _existingPhotos || [],
       mode: 'form',
-      onPhotosChanged: ({ count }) => {
-        const countEl = _container?.querySelector('#photo-count');
-        if (countEl) countEl.textContent = count > 0 ? `(${count})` : '';
-        markUnsaved();
-      },
-      onGpsFound: ({ lat, lng }) => {
-        showExifGpsHint(lat, lng);
-      },
-      onNoGps: () => {
-        showNoGpsHint();
-      },
+      onPhotosChanged: ({ count }) => { const c = _container?.querySelector('#photo-count'); if (c) c.textContent = count > 0 ? `(${count})` : ''; markUnsaved(); },
+      onGpsFound: ({ lat, lng }) => { showExifGpsHint(lat, lng); },
+      onNoGps: () => { showNoGpsHint(); },
     });
     photoMount.appendChild(_photoUpload.el);
-    // Show initial count
     const countEl = _container?.querySelector('#photo-count');
-    if (countEl && _existingPhotos?.length) {
-      countEl.textContent = `(${_existingPhotos.length})`;
-    }
+    if (countEl && _existingPhotos?.length) countEl.textContent = `(${_existingPhotos.length})`;
   }
 }
 
@@ -559,15 +378,12 @@ function mountComponents() {
 
 function setupCollapsibles() {
   _container?.querySelectorAll('.collapsible-header').forEach(header => {
-    header.addEventListener('click', () => {
-      const section = header.closest('.collapsible');
-      section?.classList.toggle('open');
-    });
+    header.addEventListener('click', () => header.closest('.collapsible')?.classList.toggle('open'));
   });
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// GPS
+// GPS + Reverse Geocoding
 // ═══════════════════════════════════════════════════════════════════
 
 function setupGPS() {
@@ -576,47 +392,35 @@ function setupGPS() {
   const gpsBtn = _container?.querySelector('#btn-gps');
 
   function requestGPS() {
-    if (!navigator.geolocation) {
-      updateGPSStatus('none', 'GPS nicht verfügbar');
-      return;
-    }
-
+    if (!navigator.geolocation) { updateGPSStatus('none', 'GPS nicht verfügbar'); return; }
     updateGPSStatus('none', 'Suche Position...');
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         _data.lat = pos.coords.latitude;
         _data.lng = pos.coords.longitude;
-        if (coordsInput) {
-          coordsInput.value = `${_data.lat.toFixed(6)}, ${_data.lng.toFixed(6)}`;
-        }
+        if (coordsInput) coordsInput.value = `${_data.lat.toFixed(6)}, ${_data.lng.toFixed(6)}`;
 
         const acc = pos.coords.accuracy;
         const quality = acc < 20 ? 'good' : acc < 100 ? 'fair' : 'poor';
         const label = acc < 20 ? 'Sehr gut' : acc < 100 ? 'OK' : 'Ungenau';
         updateGPSStatus(quality, `${label} (±${Math.round(acc)}m)`);
         markUnsaved();
+
+        // Reverse Geocoding – nur wenn Ort-Feld leer
+        fillLocationIfEmpty(_data.lat, _data.lng);
       },
-      (err) => {
-        console.warn('[GPS]', err.message);
-        updateGPSStatus('none', 'GPS-Fehler – Position manuell setzen');
-      },
+      (err) => { console.warn('[GPS]', err.message); updateGPSStatus('none', 'GPS-Fehler – Position manuell setzen'); },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
     );
   }
 
   function updateGPSStatus(quality, text) {
-    if (gpsStatus) {
-      gpsStatus.innerHTML = `<span class="gps-dot ${quality}"></span><span>${text}</span>`;
-    }
+    if (gpsStatus) gpsStatus.innerHTML = `<span class="gps-dot ${quality}"></span><span>${text}</span>`;
   }
 
-  // Auto-request for new observations
-  if (!_isEditing && !_data.lat) {
-    requestGPS();
-  } else if (_data.lat) {
-    updateGPSStatus('good', 'Position gesetzt');
-  }
+  if (!_isEditing && !_data.lat) { requestGPS(); }
+  else if (_data.lat) { updateGPSStatus('good', 'Position gesetzt'); }
 
   gpsBtn?.addEventListener('click', requestGPS);
 
@@ -624,8 +428,7 @@ function setupGPS() {
   coordsInput?.addEventListener('change', () => {
     const raw = coordsInput.value.trim();
     if (!raw) {
-      _data.lat = null;
-      _data.lng = null;
+      _data.lat = null; _data.lng = null;
       updateGPSStatus('none', 'Keine Position');
       markUnsaved();
       return;
@@ -636,17 +439,44 @@ function setupGPS() {
       const lat = parseFloat(match[1].replace(',', '.'));
       const lng = parseFloat(match[2].replace(',', '.'));
       if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-        _data.lat = lat;
-        _data.lng = lng;
+        _data.lat = lat; _data.lng = lng;
         coordsInput.value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
         updateGPSStatus('good', 'Manuell gesetzt');
         markUnsaved();
+        fillLocationIfEmpty(lat, lng);
         return;
       }
     }
-
     updateGPSStatus('none', 'Ungültiges Format – z.B. 52.4831, 13.3947');
   });
+}
+
+/**
+ * Füllt das Ort-Feld per Reverse Geocoding, wenn es leer ist.
+ * Überschreibt nie manuell eingegebene Ortsnamen.
+ */
+async function fillLocationIfEmpty(lat, lng) {
+  const locInput = _container?.querySelector('#f-location-name');
+  if (!locInput) return;
+
+  // Nur füllen wenn leer
+  if (locInput.value.trim()) return;
+
+  const spinner = _container?.querySelector('#geocode-spinner');
+  if (spinner) spinner.style.display = '';
+
+  try {
+    const name = await reverseGeocode(lat, lng);
+    if (name && _container) {
+      locInput.value = name;
+      _data.locationName = name;
+      markUnsaved();
+    }
+  } catch (err) {
+    console.warn('[Geocode]', err);
+  } finally {
+    if (spinner) spinner.style.display = 'none';
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -657,11 +487,7 @@ function showExifGpsHint(lat, lng) {
   const hintEl = _container?.querySelector('#exif-gps-hint');
   if (!hintEl) return;
 
-  // Nicht anzeigen wenn Koordinaten identisch mit aktuellen sind
-  if (_data.lat && _data.lng &&
-      Math.abs(_data.lat - lat) < 0.0001 && Math.abs(_data.lng - lng) < 0.0001) {
-    return;
-  }
+  if (_data.lat && _data.lng && Math.abs(_data.lat - lat) < 0.0001 && Math.abs(_data.lng - lng) < 0.0001) return;
 
   hintEl.innerHTML = `
     <div class="exif-gps-bar">
@@ -675,32 +501,24 @@ function showExifGpsHint(lat, lng) {
   `;
 
   hintEl.querySelector('#btn-adopt-gps')?.addEventListener('click', () => {
-    _data.lat = lat;
-    _data.lng = lng;
-
+    _data.lat = lat; _data.lng = lng;
     const coordsInput = _container?.querySelector('#f-coords');
     if (coordsInput) coordsInput.value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-
     const gpsStatus = _container?.querySelector('#gps-status');
-    if (gpsStatus) {
-      gpsStatus.innerHTML = '<span class="gps-dot good"></span><span>Aus Foto-EXIF übernommen</span>';
-    }
-
+    if (gpsStatus) gpsStatus.innerHTML = '<span class="gps-dot good"></span><span>Aus Foto-EXIF übernommen</span>';
     hintEl.innerHTML = '';
     markUnsaved();
     window.AraLog?.showToast('GPS-Position aus Foto übernommen', 'success');
+    // Reverse Geocoding nach EXIF-Übernahme
+    fillLocationIfEmpty(lat, lng);
   });
 
-  hintEl.querySelector('.exif-gps-dismiss')?.addEventListener('click', () => {
-    hintEl.innerHTML = '';
-  });
+  hintEl.querySelector('.exif-gps-dismiss')?.addEventListener('click', () => { hintEl.innerHTML = ''; });
 }
 
 async function showNoGpsHint() {
-  // Einmalig: nur anzeigen wenn noch nicht weggeklickt
   const dismissed = await db.settings.get('gpsHintDismissed');
   if (dismissed?.value) return;
-
   const hintEl = _container?.querySelector('#exif-gps-hint');
   if (!hintEl || hintEl.innerHTML.trim()) return;
 
@@ -713,7 +531,6 @@ async function showNoGpsHint() {
       <button type="button" class="exif-gps-dismiss" aria-label="Schließen">×</button>
     </div>
   `;
-
   hintEl.querySelector('.exif-gps-dismiss')?.addEventListener('click', async () => {
     hintEl.innerHTML = '';
     await db.settings.put({ key: 'gpsHintDismissed', value: true });
@@ -730,9 +547,9 @@ function setupFormSubmit() {
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    // Read text input values
     _data.date = _container.querySelector('#f-date')?.value || _data.date;
     _data.time = _container.querySelector('#f-time')?.value || _data.time;
+    _data.locationName = _container.querySelector('#f-location-name')?.value?.trim() || '';
     _data.positionFreetext = _container.querySelector('#f-position-freetext')?.value?.trim() || '';
     _data.plant = _container.querySelector('#f-plant')?.value?.trim() || '';
     _data.heightAboveGround = _container.querySelector('#f-height')?.value?.trim() || '';
@@ -742,11 +559,8 @@ function setupFormSubmit() {
     _data.temperature = tempVal !== '' && tempVal != null ? parseFloat(tempVal) : null;
 
     _data.updatedAt = new Date().toISOString();
-    if (!_isEditing) {
-      _data.createdAt = new Date().toISOString();
-    }
+    if (!_isEditing) _data.createdAt = new Date().toISOString();
 
-    // Species picker value
     const speciesPicker = _components[0];
     if (speciesPicker?.getValue) {
       const sv = speciesPicker.getValue();
@@ -758,30 +572,18 @@ function setupFormSubmit() {
 
     try {
       let id;
-      if (_isEditing && _observationId) {
-        await db.observations.update(_observationId, { ..._data });
-        id = _observationId;
-      } else {
-        id = await db.observations.add({ ..._data });
-      }
+      if (_isEditing && _observationId) { await db.observations.update(_observationId, { ..._data }); id = _observationId; }
+      else { id = await db.observations.add({ ..._data }); }
 
-      // Process pending photos
       if (_photoUpload?.hasPendingPhotos()) {
-        try {
-          await _photoUpload.processPendingPhotos(id);
-        } catch (err) {
-          console.error('[Form] Photo processing error:', err);
-        }
+        try { await _photoUpload.processPendingPhotos(id); }
+        catch (err) { console.error('[Form] Photo processing error:', err); }
       }
 
-      // Clear unsaved
       const wrapper = _container?.querySelector('[data-unsaved]');
       if (wrapper) wrapper.dataset.unsaved = 'false';
 
-      window.AraLog?.showToast(
-        _isEditing ? 'Beobachtung aktualisiert' : 'Beobachtung gespeichert',
-        'success'
-      );
+      window.AraLog?.showToast(_isEditing ? 'Beobachtung aktualisiert' : 'Beobachtung gespeichert', 'success');
       window.AraLog?.navigate(`view/${id}`);
     } catch (err) {
       console.error('[Form] Save error:', err);
@@ -796,31 +598,16 @@ function setupFormSubmit() {
 
 function markUnsaved() {
   const wrapper = _container?.querySelector('[data-unsaved]');
-  if (wrapper && wrapper.dataset.unsaved !== 'true') {
-    wrapper.dataset.unsaved = 'true';
-  }
+  if (wrapper && wrapper.dataset.unsaved !== 'true') wrapper.dataset.unsaved = 'true';
 }
 
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str || '';
-  return div.innerHTML;
-}
+function escapeHtml(str) { const div = document.createElement('div'); div.textContent = str || ''; return div.innerHTML; }
 
 function destroy() {
-  _components.forEach(c => {
-    if (typeof c?.destroy === 'function') c.destroy();
-  });
+  _components.forEach(c => { if (typeof c?.destroy === 'function') c.destroy(); });
   _components = [];
-  if (_photoUpload) {
-    _photoUpload.destroy();
-    _photoUpload = null;
-  }
-  _existingPhotos = [];
-  _container = null;
-  _data = null;
-  _isEditing = false;
-  _observationId = null;
+  if (_photoUpload) { _photoUpload.destroy(); _photoUpload = null; }
+  _existingPhotos = []; _container = null; _data = null; _isEditing = false; _observationId = null;
 }
 
 export default { init, destroy };
