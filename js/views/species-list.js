@@ -1,15 +1,28 @@
 /* ==========================================================================
    AraLog – Species List View
    Browse and search the species catalog, grouped by family
+   With observation counts per species
    ========================================================================== */
 
 import { speciesCatalog, searchSpecies, getFamilies } from '../data/species-catalog.js';
 import db from '../db.js';
 
 let _container = null;
+let _obsCounts = new Map();  // speciesName → count
 
 async function init(container, params) {
   _container = container;
+
+  // Load observation counts per species
+  _obsCounts = new Map();
+  const observations = await db.observations.toArray();
+  for (const obs of observations) {
+    if (obs.speciesName) {
+      _obsCounts.set(obs.speciesName, (_obsCounts.get(obs.speciesName) || 0) + 1);
+    }
+  }
+
+  const observedSpeciesCount = _obsCounts.size;
 
   // Load custom species
   const customSpecies = await db.customSpecies.toArray();
@@ -22,7 +35,12 @@ async function init(container, params) {
     <div class="view-container">
       <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:var(--space-md);">
         <h2>Artenliste</h2>
-        <span class="text-muted" style="font-size:var(--text-sm);">${allSpecies.length} Arten</span>
+        <span class="text-muted" style="font-size:var(--text-sm);">${observedSpeciesCount} beobachtet / ${allSpecies.length} im Katalog</span>
+      </div>
+
+      <div class="species-sort-bar" style="display:flex; gap:var(--space-sm); margin-bottom:var(--space-md);">
+        <button type="button" class="filter-chip selected" data-sort="family">Nach Familie</button>
+        <button type="button" class="filter-chip" data-sort="count">Nach Häufigkeit</button>
       </div>
 
       <div class="search-bar" style="margin-bottom: var(--space-lg);">
@@ -39,29 +57,56 @@ async function init(container, params) {
     </div>
   `;
 
+  let currentSort = 'family';
+
+  // Sort toggle
+  container.querySelector('.species-sort-bar')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-sort]');
+    if (!btn) return;
+
+    currentSort = btn.dataset.sort;
+    container.querySelectorAll('.species-sort-bar .filter-chip').forEach(c => c.classList.remove('selected'));
+    btn.classList.add('selected');
+
+    const query = container.querySelector('#species-search')?.value?.toLowerCase().trim() || '';
+    updateList(allSpecies, customSpecies, query, currentSort);
+  });
+
+  // Search
   container.querySelector('#species-search')?.addEventListener('input', (e) => {
     const query = e.target.value.toLowerCase().trim();
-    const list = container.querySelector('#species-list');
-    if (!list) return;
-
-    if (!query) {
-      list.innerHTML = renderGroupedList(allSpecies);
-      return;
-    }
-
-    const catalogResults = searchSpecies(query, 50);
-    const customResults = customSpecies.filter(s =>
-      s.germanName?.toLowerCase().includes(query) ||
-      s.scientificName?.toLowerCase().includes(query) ||
-      s.family?.toLowerCase().includes(query)
-    ).map(s => ({ ...s, id: `custom_${s.id}`, distribution: 'eigene Art' }));
-
-    const results = [...catalogResults, ...customResults];
-
-    list.innerHTML = results.length
-      ? renderFlatList(results, query)
-      : '<div class="empty-state"><h3>Keine Arten gefunden</h3></div>';
+    updateList(allSpecies, customSpecies, query, currentSort);
   });
+}
+
+function updateList(allSpecies, customSpecies, query, sort) {
+  const list = _container?.querySelector('#species-list');
+  if (!list) return;
+
+  if (!query) {
+    list.innerHTML = sort === 'count'
+      ? renderByCount(allSpecies)
+      : renderGroupedList(allSpecies);
+    return;
+  }
+
+  const catalogResults = searchSpecies(query, 50);
+  const customResults = customSpecies.filter(s =>
+    s.germanName?.toLowerCase().includes(query) ||
+    s.scientificName?.toLowerCase().includes(query) ||
+    s.family?.toLowerCase().includes(query)
+  ).map(s => ({ ...s, id: `custom_${s.id}`, distribution: 'eigene Art' }));
+
+  const results = [...catalogResults, ...customResults];
+
+  if (!results.length) {
+    list.innerHTML = '<div class="empty-state"><h3>Keine Arten gefunden</h3></div>';
+    return;
+  }
+
+  list.innerHTML = sort === 'count'
+    ? renderByCount(results)
+    : renderFlatList(results, query);
 }
 
 function renderGroupedList(species) {
@@ -85,9 +130,42 @@ function renderGroupedList(species) {
         border-bottom: 1px solid var(--border-subtle);
         margin-bottom: var(--space-xs);
       ">${family} (${members.length})</div>
-      ${members.map(renderSpecies).join('')}
+      ${members.map(s => renderSpecies(s)).join('')}
     </div>
   `).join('');
+}
+
+function renderByCount(species) {
+  // Only show species with observations, sorted by count desc
+  const withCounts = species
+    .map(s => ({ ...s, count: _obsCounts.get(s.germanName) || 0 }))
+    .sort((a, b) => b.count - a.count);
+
+  const observed = withCounts.filter(s => s.count > 0);
+  const unobserved = withCounts.filter(s => s.count === 0);
+
+  let html = '';
+
+  if (observed.length) {
+    html += observed.map(s => renderSpecies(s)).join('');
+  }
+
+  if (unobserved.length) {
+    html += `
+      <div style="
+        font-size: var(--text-xs);
+        color: var(--text-tertiary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: var(--space-md) 0 var(--space-sm);
+        border-top: 1px solid var(--border-subtle);
+        margin-top: var(--space-md);
+      ">Noch nicht beobachtet (${unobserved.length})</div>
+      ${unobserved.map(s => renderSpecies(s)).join('')}
+    `;
+  }
+
+  return html;
 }
 
 function renderFlatList(species, query) {
@@ -101,10 +179,14 @@ function renderSpecies(species, query = '') {
 
   const germanName = query ? highlightMatch(species.germanName, query) : escapeHtml(species.germanName);
   const sciName = query ? highlightMatch(species.scientificName, query) : escapeHtml(species.scientificName);
+  const count = _obsCounts.get(species.germanName) || 0;
 
   return `
     <div class="species-card">
-      <div class="species-german">${germanName}</div>
+      <div style="display:flex; justify-content:space-between; align-items:baseline;">
+        <div class="species-german">${germanName}</div>
+        ${count > 0 ? `<span class="species-obs-count">${count}×</span>` : ''}
+      </div>
       <div class="sci-name">${sciName}</div>
       <div style="display:flex; align-items:center; gap:var(--space-sm); margin-top:2px;">
         <span class="species-family">${escapeHtml(species.family)}</span>
@@ -130,6 +212,7 @@ function escapeHtml(str) {
 
 function destroy() {
   _container = null;
+  _obsCounts = new Map();
 }
 
 export default { init, destroy };
