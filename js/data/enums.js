@@ -7,7 +7,7 @@
 export const CONFIDENCE = ['sicher', 'wahrscheinlich', 'unsicher'];
 
 // ── Fund-Klassifikation ──
-export const EVIDENCE_TYPE = ['Spinne', 'Kokon', 'Brutgespinst', 'Exuvie', 'Nur Netz'];
+export const EVIDENCE_TYPE = ['Spinne', 'Kokon', 'Brutgespinst', 'Exuvie', 'Nur Netz', 'Totfund'];
 export const LIFE_STAGE = ['Adult', 'Subadult', 'Juvenil'];
 export const SEX = ['Weiblich', 'Männlich', 'Unbekannt'];
 
