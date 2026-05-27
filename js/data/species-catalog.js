@@ -106,7 +106,7 @@ export const speciesCatalog = [
   { id: 'evarcha_falcata', scientificName: 'Evarcha falcata', germanName: 'Sichelspringspinne', family: 'Salticidae', distribution: 'häufig' },
   { id: 'heliophanus_cupreus', scientificName: 'Heliophanus cupreus', germanName: 'Kupferne Sonnenspringspinne', family: 'Salticidae', distribution: 'häufig' },
   { id: 'heliophanus_flavipes', scientificName: 'Heliophanus flavipes', germanName: 'Gelbfüßige Sonnenspringspinne', family: 'Salticidae', distribution: 'mäßig verbreitet' },
-  { id: 'macaroeris_nidicolens', scientificName: 'Macaroeris nidicolens', germanName: 'Balkonspringspinne', family: 'Salticidae', distribution: 'mäßig verbreitet' },
+  { id: 'macaroeris_nidicolens', scientificName: 'Macaroeris nidicolens', germanName: 'Kanarenspringer', family: 'Salticidae', distribution: 'mäßig verbreitet' },
   { id: 'marpissa_muscosa', scientificName: 'Marpissa muscosa', germanName: 'Rindenspringspinne', family: 'Salticidae', distribution: 'häufig' },
   { id: 'pseudeuophrys_lanigera', scientificName: 'Pseudeuophrys lanigera', germanName: 'Mauerspringspinne', family: 'Salticidae', distribution: 'häufig' },
   { id: 'salticus_scenicus', scientificName: 'Salticus scenicus', germanName: 'Zebraspringspinne', family: 'Salticidae', distribution: 'häufig', aragesId: 1282 },
