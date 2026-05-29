@@ -4,7 +4,7 @@
    CACHE_VERSION bei jedem Update hochzählen!
    ========================================================================== */
 
-const CACHE_VERSION = 'aralog-v39';
+const CACHE_VERSION = 'aralog-v40';
 const MAP_CACHE = 'aralog-map-tiles-v1';
 const MAP_CACHE_LIMIT = 500; // max cached tiles
 
