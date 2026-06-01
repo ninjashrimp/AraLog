@@ -80,6 +80,12 @@ async function registerServiceWorker() {
     });
 
     console.log('[AraLog] Service Worker registered');
+
+    // Request persistent storage
+    if (navigator.storage?.persist) {
+      const persistent = await navigator.storage.persist();
+      console.log("[AraLog] Persistent storage:", persistent);
+    }
   } catch (err) {
     console.error('[AraLog] Service Worker registration failed:', err);
   }
