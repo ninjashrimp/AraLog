@@ -15,6 +15,20 @@ async function init(container, params) {
   const storage = await getStorageEstimate();
   const missingLocations = await db.observations.filter(o => o.lat && o.lng && !o.locationName).count();
 
+  // Count orphaned photo records (no blob data)
+  const allPhotos = await db.photos.toArray();
+  const orphanedPhotos = allPhotos.filter(p => !p.blob && !p.thumbnail);
+  const orphanedCount = orphanedPhotos.length;
+
+  // Check persistent storage status
+  let persistentStatus = '';
+  if (navigator.storage?.persisted) {
+    const persisted = await navigator.storage.persisted();
+    persistentStatus = persisted
+      ? '<span style="color:var(--success);">Persistent Storage aktiv</span>'
+      : '<span style="color:var(--warning);">Kein Persistent Storage – Daten könnten vom Browser gelöscht werden</span>';
+  }
+
   container.innerHTML = `
     <div class="view-container">
       <h2>Einstellungen</h2>
@@ -35,6 +49,7 @@ async function init(container, params) {
           <div class="storage-info">
             ${formatBytes(storage.usage)} von ${formatBytes(storage.quota)} belegt (${storage.usagePercent}%)
           </div>
+          ${persistentStatus ? `<div class="storage-info" style="margin-top:var(--space-sm);">${persistentStatus}</div>` : ''}
         </div>
       </div>
 
@@ -48,6 +63,20 @@ async function init(container, params) {
             </svg>
             Ortsnamen auflösen (${missingLocations})
           </button>
+          <button class="btn btn-secondary btn-block" id="btn-cleanup-photos" ${orphanedCount === 0 ? 'disabled' : ''}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+            Verwaiste Foto-Records aufräumen (${orphanedCount})
+          </button>
+          ${!persistentStatus.includes('aktiv') ? `
+            <button class="btn btn-secondary btn-block" id="btn-request-persist">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              Persistent Storage anfordern
+            </button>
+          ` : ''}
           <div id="geocode-progress"></div>
         </div>
       </div>
@@ -104,9 +133,12 @@ async function init(container, params) {
     </div>
   `;
 
+  // Event Handlers
   container.querySelector('#btn-export-json')?.addEventListener('click', exportJSON);
   container.querySelector('#btn-export-photos')?.addEventListener('click', exportPhotos);
   container.querySelector('#btn-geocode-all')?.addEventListener('click', () => geocodeAll(container, params));
+  container.querySelector('#btn-cleanup-photos')?.addEventListener('click', () => cleanupOrphanedPhotos(container, params));
+  container.querySelector('#btn-request-persist')?.addEventListener('click', requestPersistentStorage);
 
   container.querySelector('#btn-delete-all')?.addEventListener('click', async () => {
     if (confirm('ALLE Beobachtungen und Fotos unwiderruflich löschen?')) {
@@ -121,6 +153,64 @@ async function init(container, params) {
   });
 
   container.querySelector('#import-json-input')?.addEventListener('change', handleImport);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Cleanup Orphaned Photos
+// ═══════════════════════════════════════════════════════════════════
+
+async function cleanupOrphanedPhotos(container, params) {
+  const allPhotos = await db.photos.toArray();
+  const orphaned = allPhotos.filter(p => !p.blob && !p.thumbnail);
+
+  if (!orphaned.length) {
+    window.AraLog?.showToast('Keine verwaisten Records gefunden', 'success');
+    return;
+  }
+
+  if (!confirm(`${orphaned.length} Foto-Records ohne Bilddaten gefunden. Diese aufräumen?`)) return;
+
+  let cleaned = 0;
+  for (const photo of orphaned) {
+    try {
+      // Remove photoId from observation
+      if (photo.observationId) {
+        const obs = await db.observations.get(photo.observationId);
+        if (obs?.photoIds) {
+          const updated = obs.photoIds.filter(id => id !== photo.id);
+          await db.observations.update(photo.observationId, { photoIds: updated });
+        }
+      }
+      await db.photos.delete(photo.id);
+      cleaned++;
+    } catch (err) {
+      console.warn('[Cleanup]', photo.id, err);
+    }
+  }
+
+  window.AraLog?.showToast(`${cleaned} verwaiste Records entfernt`, 'success');
+  init(container, params);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Persistent Storage
+// ═══════════════════════════════════════════════════════════════════
+
+async function requestPersistentStorage() {
+  if (!navigator.storage?.persist) {
+    window.AraLog?.showToast('Persistent Storage nicht unterstützt', 'error');
+    return;
+  }
+
+  const granted = await navigator.storage.persist();
+  if (granted) {
+    window.AraLog?.showToast('Persistent Storage aktiviert', 'success');
+  } else {
+    window.AraLog?.showToast('Persistent Storage wurde vom Browser abgelehnt', 'error');
+  }
+
+  // Refresh view
+  init(_container, {});
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -198,6 +288,7 @@ async function exportPhotos() {
     const JSZip = window.JSZip;
     if (!JSZip) {
       window.AraLog?.showToast('JSZip nicht verfügbar', 'error');
+      if (btn) btn.disabled = false;
       return;
     }
 
@@ -206,25 +297,24 @@ async function exportPhotos() {
     const obsMap = new Map(observations.map(o => [o.id, o]));
 
     const photos = await db.photos.toArray();
-    if (!photos.length) {
-      window.AraLog?.showToast('Keine Fotos vorhanden', 'info');
+    const validPhotos = photos.filter(p => p.blob);
+
+    if (!validPhotos.length) {
+      window.AraLog?.showToast('Keine Fotos mit Bilddaten vorhanden', 'info');
       if (btn) btn.disabled = false;
       return;
     }
 
     let done = 0;
-    for (const photo of photos) {
+    for (const photo of validPhotos) {
       done++;
       if (progressEl) {
         progressEl.innerHTML = `
-          <div class="geocode-progress-bar"><div class="geocode-progress-fill" style="width: ${(done / photos.length) * 100}%"></div></div>
-          <div class="geocode-progress-text">Foto ${done} / ${photos.length}</div>
+          <div class="geocode-progress-bar"><div class="geocode-progress-fill" style="width: ${(done / validPhotos.length) * 100}%"></div></div>
+          <div class="geocode-progress-text">Foto ${done} / ${validPhotos.length}</div>
         `;
       }
 
-      if (!photo.blob) continue;
-
-      // Build meaningful filename: Art_Datum_ID.jpg
       const obs = obsMap.get(photo.observationId);
       const species = sanitizeFilename(obs?.speciesName || 'Unbekannt');
       const date = obs?.date || 'undatiert';
@@ -236,10 +326,7 @@ async function exportPhotos() {
 
     if (progressEl) progressEl.innerHTML = '<div class="geocode-progress-text">ZIP wird erstellt...</div>';
 
-    const zipBlob = await zip.generateAsync({
-      type: 'blob',
-      compression: 'STORE', // JPEGs sind schon komprimiert
-    });
+    const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
 
     downloadBlob(zipBlob, `aralog-fotos-${new Date().toISOString().slice(0, 10)}.zip`);
     window.AraLog?.showToast(`${done} Fotos exportiert`, 'success');
