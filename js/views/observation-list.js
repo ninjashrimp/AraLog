@@ -279,7 +279,7 @@ function renderListItem(obs, thumbMap) {
           </div>`
       }
       <div class="obs-info">
-        <div class="obs-species">${obs.speciesName || 'Unbestimmt'}</div>
+        <div class="obs-species">${obs.parentObservationId ? '<span class="followup-indicator">↳</span> ' : ''}${obs.speciesName || 'Unbestimmt'}</div>
         <div class="obs-meta">
           <span>${dateFormatted}</span>
           ${obs.locationName ? `<span>· ${shortLocation(obs.locationName)}</span>` : ''}

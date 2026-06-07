@@ -1073,3 +1073,10 @@
   color: var(--text-tertiary);
   margin-top: 2px;
 }
+
+/* ── Follow-up Indicator ── */
+.followup-indicator {
+  color: var(--accent);
+  font-weight: var(--weight-bold);
+  margin-right: 2px;
+}
