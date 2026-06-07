@@ -1,7 +1,6 @@
 /* ==========================================================================
    AraLog – Observation Detail View
-   Single observation display with all fields, photo gallery,
-   retroactive photo upload, and external links (GBIF, AraGes)
+   With photo gallery, external links, follow-up observations, and linking
    ========================================================================== */
 
 import db from '../db.js';
@@ -16,19 +15,17 @@ async function init(container, params) {
   _container = container;
   const id = parseInt(params?.id);
 
-  if (!id) {
-    container.innerHTML = '<div class="view-container"><div class="empty-state"><h3>Keine ID angegeben</h3></div></div>';
-    return;
-  }
+  if (!id) { container.innerHTML = '<div class="view-container"><div class="empty-state"><h3>Keine ID angegeben</h3></div></div>'; return; }
 
   const obs = await db.observations.get(id);
-  if (!obs) {
-    container.innerHTML = `<div class="view-container"><div class="empty-state"><h3>Beobachtung #${id} nicht gefunden</h3></div></div>`;
-    return;
-  }
+  if (!obs) { container.innerHTML = `<div class="view-container"><div class="empty-state"><h3>Beobachtung #${id} nicht gefunden</h3></div></div>`; return; }
 
   const photos = await getPhotosForObservation(id);
   const externalLinks = buildExternalLinks(obs);
+
+  // Load linked observations
+  const parentObs = obs.parentObservationId ? await db.observations.get(obs.parentObservationId) : null;
+  const childObs = (await db.observations.filter(o => o.parentObservationId === id).toArray()).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 
   container.innerHTML = `
     <div class="view-container">
@@ -52,6 +49,40 @@ async function init(container, params) {
             </svg>
           </button>
         </div>
+      </div>
+
+      <!-- ── Linked Observations ── -->
+      ${parentObs || childObs.length ? `
+        <div class="detail-section">
+          <h3>Verknüpfte Beobachtungen</h3>
+          ${parentObs ? `
+            <div class="linked-obs">
+              <span class="linked-obs-label">Erstbeobachtung:</span>
+              <a href="#view/${parentObs.id}" class="linked-obs-link">${formatDate(parentObs.date)} – ${parentObs.speciesName || 'Unbestimmt'}</a>
+            </div>
+          ` : ''}
+          ${childObs.length ? childObs.map(c => `
+            <div class="linked-obs">
+              <span class="linked-obs-label">Folge:</span>
+              <a href="#view/${c.id}" class="linked-obs-link">${formatDate(c.date)} – ${c.evidenceType || ''} ${c.notes ? '– ' + truncate(c.notes, 40) : ''}</a>
+            </div>
+          `).join('') : ''}
+        </div>
+      ` : ''}
+
+      <!-- ── Action Buttons ── -->
+      <div class="detail-section" style="display:flex; gap:var(--space-sm); flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-sm" id="btn-followup">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/></svg>
+          Folgebeobachtung
+        </button>
+        <button class="btn btn-secondary btn-sm" id="btn-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          Verknüpfen
+        </button>
+        ${obs.parentObservationId ? `
+          <button class="btn btn-secondary btn-sm" id="btn-unlink">Verknüpfung lösen</button>
+        ` : ''}
       </div>
 
       <!-- Photo Gallery -->
@@ -99,12 +130,7 @@ async function init(container, params) {
         </div>
       ` : ''}
 
-      ${obs.interactionTags?.length ? `
-        <div class="detail-section">
-          <h3>Interaktionen</h3>
-          ${field('', (obs.interactionTags || []).join(', '))}
-        </div>
-      ` : ''}
+      ${obs.interactionTags?.length ? `<div class="detail-section"><h3>Interaktionen</h3>${field('', (obs.interactionTags || []).join(', '))}</div>` : ''}
 
       ${obs.webType || obs.webCondition || obs.cocoonCondition ? `
         <div class="detail-section">
@@ -140,9 +166,114 @@ async function init(container, params) {
         </div>
       ` : ''}
     </div>
+
+    <!-- Link Picker Overlay -->
+    <div id="link-picker-overlay" class="link-picker-overlay" style="display:none;"></div>
   `;
 
-  // Mount retroactive photo upload
+  // ── Follow-up button ──
+  container.querySelector('#btn-followup')?.addEventListener('click', () => {
+    window.AraLog._prefill = {
+      parentObservationId: id,
+      speciesName: obs.speciesName,
+      scientificName: obs.scientificName,
+      speciesId: obs.speciesId,
+      family: obs.family,
+      lat: obs.lat,
+      lng: obs.lng,
+      locationName: obs.locationName,
+      confidence: obs.confidence,
+    };
+    window.AraLog.navigate('new');
+  });
+
+  // ── Link button ──
+  container.querySelector('#btn-link')?.addEventListener('click', () => showLinkPicker(id, obs));
+
+  // ── Unlink button ──
+  container.querySelector('#btn-unlink')?.addEventListener('click', async () => {
+    if (confirm('Verknüpfung zur Erstbeobachtung lösen?')) {
+      await db.observations.update(id, { parentObservationId: null });
+      window.AraLog?.showToast('Verknüpfung gelöst', 'success');
+      init(container, params);
+    }
+  });
+
+  // ── Photo upload, delete, notes, fullscreen ──
+  setupPhotoHandlers(container, params, id, photos);
+
+  // ── Delete observation ──
+  container.querySelector('#btn-delete')?.addEventListener('click', async () => {
+    if (confirm('Beobachtung wirklich löschen?')) {
+      for (const p of photos) await db.photos.delete(p.id);
+      await db.observations.delete(id);
+      window.AraLog?.showToast('Beobachtung gelöscht', 'success');
+      window.AraLog?.navigate('');
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Link Picker
+// ═══════════════════════════════════════════════════════════════════
+
+async function showLinkPicker(currentId, currentObs) {
+  const overlay = _container?.querySelector('#link-picker-overlay');
+  if (!overlay) return;
+
+  // Find candidate observations (same species, or all if unspecified)
+  let candidates = await db.observations.orderBy('date').reverse().toArray();
+  candidates = candidates.filter(o => o.id !== currentId && o.id !== currentObs.parentObservationId);
+
+  // Sort: same species first
+  if (currentObs.speciesName) {
+    candidates.sort((a, b) => {
+      const aMatch = a.speciesName === currentObs.speciesName ? 0 : 1;
+      const bMatch = b.speciesName === currentObs.speciesName ? 0 : 1;
+      return aMatch - bMatch || new Date(b.date) - new Date(a.date);
+    });
+  }
+
+  overlay.style.display = '';
+  overlay.innerHTML = `
+    <div class="link-picker">
+      <div class="link-picker-header">
+        <h3>Erstbeobachtung wählen</h3>
+        <button type="button" class="link-picker-close" id="link-picker-close">×</button>
+      </div>
+      <p class="text-muted" style="font-size:var(--text-sm); margin-bottom:var(--space-md);">
+        Wähle die Beobachtung, zu der dieser Eintrag eine Folgebeobachtung ist.
+      </p>
+      <div class="link-picker-list">
+        ${candidates.map(c => `
+          <button type="button" class="link-picker-item ${c.speciesName === currentObs.speciesName ? 'same-species' : ''}" data-id="${c.id}">
+            <div class="link-picker-species">${escapeHtml(c.speciesName || 'Unbestimmt')}</div>
+            <div class="link-picker-meta">${formatDate(c.date)} ${c.locationName ? '· ' + truncate(c.locationName, 30) : ''}</div>
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  overlay.querySelector('#link-picker-close')?.addEventListener('click', () => { overlay.style.display = 'none'; });
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.style.display = 'none'; });
+
+  overlay.querySelectorAll('.link-picker-item').forEach(item => {
+    item.addEventListener('click', async () => {
+      const parentId = parseInt(item.dataset.id);
+      await db.observations.update(currentId, { parentObservationId: parentId });
+      overlay.style.display = 'none';
+      window.AraLog?.showToast('Verknüpfung erstellt', 'success');
+      init(_container, { id: currentId });
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Photo Handlers
+// ═══════════════════════════════════════════════════════════════════
+
+function setupPhotoHandlers(container, params, id, photos) {
   const uploadMount = container.querySelector('#detail-photo-upload');
   if (uploadMount) {
     _photoUpload = createPhotoUpload({
@@ -152,18 +283,16 @@ async function init(container, params) {
     uploadMount.appendChild(_photoUpload.el);
   }
 
-  // Photo delete
   container.querySelectorAll('.photo-delete-btn').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const photoId = parseInt(btn.dataset.photoId);
       if (!photoId || !confirm('Foto wirklich löschen?')) return;
       try { await deletePhoto(photoId, id); window.AraLog?.showToast('Foto gelöscht', 'success'); init(container, params); }
-      catch (err) { console.error('[Detail] Photo delete error:', err); window.AraLog?.showToast('Fehler beim Löschen', 'error'); }
+      catch (err) { window.AraLog?.showToast('Fehler beim Löschen', 'error'); }
     });
   });
 
-  // Photo note editing
   container.querySelectorAll('.photo-note').forEach(noteEl => {
     noteEl.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -175,18 +304,14 @@ async function init(container, params) {
       input.focus();
       async function save() {
         const val = input.value.trim();
-        try { await db.photos.update(photoId, { note: val || null }); } catch (err) { console.error('[Note]', err); }
+        try { await db.photos.update(photoId, { note: val || null }); } catch (err) { /* */ }
         noteEl.innerHTML = val ? escapeHtml(val) : '<span class="photo-note-placeholder">+ Notiz</span>';
       }
       input.addEventListener('blur', save);
-      input.addEventListener('keydown', (ev) => {
-        if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
-        if (ev.key === 'Escape') { input.value = currentText; input.blur(); }
-      });
+      input.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); } if (ev.key === 'Escape') { input.value = currentText; input.blur(); } });
     });
   });
 
-  // Photo fullscreen (full-res + caption)
   container.querySelectorAll('.detail-photo').forEach(img => {
     img.addEventListener('click', async () => {
       const wrapper = img.closest('[data-photo-id]');
@@ -201,44 +326,25 @@ async function init(container, params) {
       showFullscreenPhoto(img.src, false, caption);
     });
   });
-
-  // Delete observation
-  container.querySelector('#btn-delete')?.addEventListener('click', async () => {
-    if (confirm('Beobachtung wirklich löschen?')) {
-      for (const p of photos) await db.photos.delete(p.id);
-      await db.observations.delete(id);
-      window.AraLog?.showToast('Beobachtung gelöscht', 'success');
-      window.AraLog?.navigate('');
-    }
-  });
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// External Links (GBIF + AraGes Atlas)
+// External Links, Fullscreen, Helpers
 // ═══════════════════════════════════════════════════════════════════
 
 function buildExternalLinks(obs) {
   const links = [];
   const sciName = obs.scientificName;
   const extIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
-
-  // GBIF – works with any real scientific name
   if (sciName && !sciName.includes('div.') && !sciName.includes('spp.')) {
     links.push(`<a href="https://www.gbif.org/species/search?q=${encodeURIComponent(sciName)}" target="_blank" rel="noopener" class="ext-link">GBIF ${extIcon}</a>`);
   }
-
-  // AraGes Atlas – only if aragesId is known
   const catalogEntry = obs.speciesId ? getSpeciesById(obs.speciesId) : null;
   if (catalogEntry?.aragesId) {
     links.push(`<a href="https://atlas.arages.de/species/${catalogEntry.aragesId}" target="_blank" rel="noopener" class="ext-link">AraGes ${extIcon}</a>`);
   }
-
   return links.join('');
 }
-
-// ═══════════════════════════════════════════════════════════════════
-// Fullscreen Photo Viewer
-// ═══════════════════════════════════════════════════════════════════
 
 function showFullscreenPhoto(src, revokeOnClose = false, caption = '') {
   const overlay = document.createElement('div');
@@ -257,10 +363,6 @@ function showFullscreenPhoto(src, revokeOnClose = false, caption = '') {
   document.body.appendChild(overlay);
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// Helpers
-// ═══════════════════════════════════════════════════════════════════
-
 function field(label, value) {
   if (!value && value !== 0) return '';
   return `<div class="detail-field">${label ? `<span class="detail-field-label">${label}</span>` : ''}<span class="detail-field-value">${value}</span></div>`;
@@ -272,6 +374,7 @@ function formatDate(dateStr) {
   catch { return dateStr; }
 }
 
+function truncate(str, len) { return str.length > len ? str.substring(0, len) + '…' : str; }
 function escapeHtml(str) { const div = document.createElement('div'); div.textContent = str || ''; return div.innerHTML; }
 
 function destroy() {
