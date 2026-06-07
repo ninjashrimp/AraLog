@@ -355,7 +355,18 @@ async function handleImport(e) {
 
     const count = data.observations?.length || 0;
     if (confirm(`${count} Beobachtungen importieren?`)) {
-      for (const obs of (data.observations || [])) { delete obs.id; obs.photoIds = []; await db.observations.add(obs); }
+      const idMap = new Map();
+      for (const obs of (data.observations || [])) {
+        const oldId = obs.id; delete obs.id; obs.photoIds = [];
+        const newId = await db.observations.add(obs);
+        if (oldId != null) idMap.set(oldId, newId);
+      }
+      for (const [, newId] of idMap) {
+        const obs = await db.observations.get(newId);
+        if (obs?.parentObservationId && idMap.has(obs.parentObservationId)) {
+          await db.observations.update(newId, { parentObservationId: idMap.get(obs.parentObservationId) });
+        }
+      }
       for (const sp of (data.customSpecies || [])) { delete sp.id; await db.customSpecies.add(sp); }
       window.AraLog?.showToast(`${count} Beobachtungen importiert`, 'success');
       init(_container, {});
